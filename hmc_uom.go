@@ -53,7 +53,7 @@ func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
 	return &hmc
 }
 
-(hmc *HMC)func logon (ctx context.Context) error {
+func (hmc *HMC) Logon (ctx context.Context) error {
 
 	if hmc.connected {
 		//slog.Error("Attempting to login when connected")
@@ -106,6 +106,6 @@ func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
 	return nil
 }
 
-(hmc *HMC) shutdown {
+func (hmc *HMC) Shutdown {
 	hmc.client.CloseIdleConnections()
 }
