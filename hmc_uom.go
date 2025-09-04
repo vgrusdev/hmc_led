@@ -99,15 +99,15 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 
 	fmt.Printf("Body: %s\n", body)
 
-	type logonResponse struct {
-		token	string	`xml:"LogonResponse>X-API-Session"`
+	type LogonResponse struct {
+		Token	string	`xml:"LogonResponse>X-API-Session"`
 	}
-	var response logonResponse
+	var response LogonResponse
 	if err := xml.Unmarshal(body, &response); err != nil {
 		return fmt.Errorf("failed to parse XML: %w", err)
 	}
 
-	fmt.Printf("Token: %s\n", response.token)
+	fmt.Printf("Token: %s\n", response.Token)
 	return nil
 }
 
