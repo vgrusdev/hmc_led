@@ -75,7 +75,7 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 	// Set headers
 	req.Header.Set("Content-Type", "application/vnd.ibm.powervm.web+xml; type=LogonRequest")
 	//req.Header.Set("Accept", "application/xml")
-	//req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Connection", "keep-alive")
 
 	// Execute request
 	resp, err := hmc.client.Do(req)
