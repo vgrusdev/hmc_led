@@ -100,7 +100,7 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 	fmt.Printf("Body: %s\n", body)
 
 	type logonResponse struct {
-		token	string	`xml:"X-API-Session"`
+		token	string	`xml:"LogonResponse>X-API-Session"`
 	}
 	var response logonResponse
 	if err := xml.Unmarshal(body, &response); err != nil {
