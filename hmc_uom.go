@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"encoding/xml"
+	//"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"os/signal"
-	"sync/atomic"
-	"syscall"
+	//"os"
+	//"os/signal"
+	//"sync/atomic"
+	//"syscall"
 	"time"
+	"strings"
 )
 
 type HMC struct {
@@ -38,7 +39,7 @@ func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
 		DisableKeepAlives:		false,	// Explicitly enable keep-alive
 	}
 
-	hmc = HMC {
+	hmc := HMC {
 		client:		&http.Client{
 					Transport: transport,
 		},
@@ -57,7 +58,7 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 
 	if hmc.connected {
 		//slog.Error("Attempting to login when connected")
-		return fmt.Error("Attempting to login when connected")
+		return fmt.Errorf("Attempting to login when connected")
 	}
 	
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
