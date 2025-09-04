@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	//"encoding/xml"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
