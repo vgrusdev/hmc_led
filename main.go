@@ -29,8 +29,11 @@ func main() {
 	defer hmc.Shutdown()
 
 	reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	hmc.Logon(reqCtx)
+	err := hmc.Logon(reqCtx)
 	cancel()
+	if err != nil {
+		fmt.Println("Logon Error: %v\n", err)
+	}
 
 }
 
