@@ -106,6 +106,6 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 	return nil
 }
 
-func (hmc *HMC) Shutdown {
+func (hmc *HMC) Shutdown () {
 	hmc.client.CloseIdleConnections()
 }
