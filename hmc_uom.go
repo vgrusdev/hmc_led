@@ -97,7 +97,7 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 		return err
 	}
 
-	fmt.Println(body)
+	fmt.Printf("Body: %s\n", body)
 
 	//var response ServerResponse
 	//if err := xml.Unmarshal(body, &response); err != nil {
