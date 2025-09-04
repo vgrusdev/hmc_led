@@ -47,13 +47,13 @@ func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
 		//baseURL:	"https://" + hmcHostname + ":12443/rest/api"
 		user:		user,
 		passwd:		passwd,
-		connected:	false
+		connected:	false,
 	}
 
 	return &hmc
 }
 
-(hmc *HMC) logon (ctx context.Context) error {
+(hmc *HMC)func logon (ctx context.Context) error {
 
 	if hmc.connected {
 		//slog.Error("Attempting to login when connected")
@@ -61,9 +61,9 @@ func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
 	}
 	
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
-	payload := 	'<LogonRequest schemaVersion="V1_0" xmlns="http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/" ' +
-				'xmlns:mc="http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/">' +
-				'<UserID>' + hmc.user + '</UserID><Password>' + hmc.passwd + '</Password></LogonRequest>'
+	payload := 	"<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
+				"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
+				"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
  
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, strings.NewReader(payload))
