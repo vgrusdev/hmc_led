@@ -23,7 +23,7 @@ func main() {
 	hmcName := "HMC1"
 	hmcHostname := "10.134.17.107"
 	user := "vgviewer"
-	password := "abc12ab"
+	password := "abc12abc"
 	hmc := NewHMC(hmcName, hmcHostname, user, password)
 
 	defer hmc.Shutdown()
