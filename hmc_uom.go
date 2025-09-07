@@ -54,7 +54,7 @@ func NewHMC(config *viper.Viper) *HMC {
 			Transport: transport,
 		},
 		hmcName:     config.GetString("hmc_name"),
-		hmcHostname: config.GetString("hmc_host_name"),
+		hmcHostname: config.GetString("hmc_hostname"),
 		//baseURL:	"https://" + hmcHostname + ":12443/rest/api"
 		user:      config.GetString("hmc_user"),
 		passwd:    config.GetString("hmc_passwd"),
