@@ -80,7 +80,7 @@ func run() {
 	err = hmc.Logon(reqCtx)
 	cancel()
 	if err != nil {
-		fmt.Printf("Logon Error: %w\n", err)
+		fmt.Printf("Logon Error: ", err)
 	}
 
 }

@@ -76,6 +76,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
 		"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
 
+	fmt.Printf("url: %s\npayload: %s\n", url, payload)
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, strings.NewReader(payload))
 	if err != nil {
