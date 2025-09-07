@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"log"
+	"runtime"
+
 	//"crypto/tls"
 	//"encoding/xml"
 	"fmt"
@@ -9,12 +12,13 @@ import (
 	//"net/http"
 	"os"
 	"os/signal"
+
 	//"sync/atomic"
 	"syscall"
 	"time"
-	flag "github.com/spf13/pflag"
 
-	github.com/vgrusdev/hmc_led/internal/config
+	flag "github.com/spf13/pflag"
+	"github.com/vgrusdev/hmc_led/internal/config"
 )
 
 var (
@@ -41,7 +45,6 @@ func init() {
 	helpFlag = flag.BoolP("help", "h", false, "show this help message")
 	versionFlag = flag.Bool("version", false, "show version and build information")
 }
-
 
 func main() {
 	flag.Parse()
@@ -96,5 +99,3 @@ func showVersion() {
 	fmt.Printf("%s version\nbuilt with %s %s/%s %s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH, buildDate)
 	os.Exit(0)
 }
-
-
