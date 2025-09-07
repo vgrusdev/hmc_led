@@ -7,65 +7,75 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
 	//"os"
 	//"os/signal"
 	//"sync/atomic"
 	//"syscall"
-	"time"
 	"strings"
+	"time"
+
+	"github.com/spf13/viper"
 )
 
 type HMC struct {
-	client		*http.Client
-	hmcName		string
-	hmcHostname	string
-	hmcUuid		string
-	baseURL		string
-	user		string
-	passwd		string
-	token		string
-	connected	bool
+	client      *http.Client
+	hmcName     string
+	hmcHostname string
+	hmcUuid     string
+	baseURL     string
+	user        string
+	passwd      string
+	token       string
+	connected   bool
 }
 
-func NewHMC (hmcName, hmcHostname, user, passwd string) (*HMC) {
+func NewHMC(config *viper.Viper) *HMC {
 
-	transport := &http.Transport {
-		TLSClientConfig:	&tls.Config {
-				InsecureSkipVerify:	true,	// HMC appears not to have a genuine recognised CA certficate
+	var tls_skip_verify bool
+
+	if config.GetString("tls-skip-verify") == "yes" {
+		tls_skip_verify = true
+	} else {
+		tls_skip_verify = false
+	}
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: tls_skip_verify, // HMC appears not to have a genuine recognised CA certficate
 		},
-		MaxIdleConns:			1,
-		MaxIdleConnsPerHost:	1,
-		IdleConnTimeout:		60 * time.Second,
-		DisableKeepAlives:		false,	// Explicitly enable keep-alive
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		IdleConnTimeout:     60 * time.Second,
+		DisableKeepAlives:   false, // Explicitly enable keep-alive
 	}
 
-	hmc := HMC {
-		client:		&http.Client{
-					Transport: transport,
+	hmc := HMC{
+		client: &http.Client{
+			Transport: transport,
 		},
-		hmcName: 	hmcName,
-		hmcHostname:hmcHostname,
+		hmcName:     config.GetString("hmc_name"),
+		hmcHostname: config.GetString("hmc_host_name"),
 		//baseURL:	"https://" + hmcHostname + ":12443/rest/api"
-		user:		user,
-		passwd:		passwd,
-		connected:	false,
+		user:      config.GetString("hmc_user"),
+		passwd:    config.GetString("hmc_passwd"),
+		connected: false,
 	}
 
 	return &hmc
 }
 
-func (hmc *HMC) Logon (ctx context.Context) error {
+func (hmc *HMC) Logon(ctx context.Context) error {
 
 	if hmc.connected {
 		//slog.Error("Attempting to login when connected")
 		return fmt.Errorf("Attempting to login when connected")
 	}
-	
+
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
-	payload := 	"<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
-				"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
-				"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
- 
+	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
+		"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
+		"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
+
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, "PUT", url, strings.NewReader(payload))
 	if err != nil {
@@ -100,7 +110,7 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 	fmt.Printf("Body: %s\n", body)
 
 	type LogonResponse struct {
-		Token	string	`xml:"X-API-Session"`
+		Token string `xml:"X-API-Session"`
 	}
 	var response LogonResponse
 	if err := xml.Unmarshal([]byte(body), &response); err != nil {
@@ -111,6 +121,6 @@ func (hmc *HMC) Logon (ctx context.Context) error {
 	return nil
 }
 
-func (hmc *HMC) Shutdown () {
+func (hmc *HMC) Shutdown() {
 	hmc.client.CloseIdleConnections()
 }

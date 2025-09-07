@@ -1,0 +1,17 @@
+## Example configuration ##
+# The values displayed below are the defaults, used in case no configuration is provided.
+
+# The listening TCP/IP address and port.
+address: "0.0.0.0"
+port: "9680"
+
+# The log level.
+#
+# Possible values, from less to most verbose: error, warn, info, debug.
+log-level: "info"
+
+hmc_name: "HMC1"
+hmc_hostname: "10.134.17.107"
+hmc_user: "user"
+hmc_passwd: "passwd"
+tls_skip_verify: "yes"

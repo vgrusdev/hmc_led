@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 	flag "github.com/spf13/pflag"
+
+	github.com/vgrusdev/hmc_led/internal/config
 )
 
 var (
@@ -57,15 +59,13 @@ func main() {
 func run() {
 	var err error
 
-	config, err := config.New(flag.CommandLine)
+	globalConfig, err := config.New(flag.CommandLine)
 	if err != nil {
 		log.Fatalf("Could not initialize config: %s", err)
 	}
 
-	globalConfig := config.Viper
-
-
 	fmt.Println("Start program")
+
 	// Handle graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -74,7 +74,7 @@ func run() {
 	hmcHostname := "10.134.17.107"
 	user := "vgviewer"
 	password := "abc12abc"
-	hmc := NewHMC(hmcName, hmcHostname, user, password)
+	hmc := NewHMC(globalConfig)
 
 	defer hmc.Shutdown()
 
@@ -86,4 +86,15 @@ func run() {
 	}
 
 }
+
+func showHelp() {
+	flag.Usage()
+	os.Exit(0)
+}
+
+func showVersion() {
+	fmt.Printf("%s version\nbuilt with %s %s/%s %s\n", version, runtime.Version(), runtime.GOOS, runtime.GOARCH, buildDate)
+	os.Exit(0)
+}
+
 
