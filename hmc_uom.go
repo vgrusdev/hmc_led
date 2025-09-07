@@ -34,7 +34,7 @@ func NewHMC(config *viper.Viper) *HMC {
 
 	var tls_skip_verify bool
 
-	if config.GetString("tls-skip-verify") == "yes" {
+	if config.GetString("tls_skip_verify") == "yes" {
 		tls_skip_verify = true
 	} else {
 		tls_skip_verify = false
