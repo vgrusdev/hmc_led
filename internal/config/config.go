@@ -1,8 +1,8 @@
 package config
 
 import (
-	"net/url"
-	"regexp"
+	//"net/url"
+	//"regexp"
 
 	//"log/slog"
 	//"context"
@@ -14,7 +14,7 @@ import (
 )
 
 func New(flagSet *flag.FlagSet) (*viper.Viper, error) {
-    
+
 	config := viper.New()
 
 	err := config.BindPFlags(flagSet)
