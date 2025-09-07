@@ -12,9 +12,59 @@ import (
 	//"sync/atomic"
 	"syscall"
 	"time"
+	flag "github.com/spf13/pflag"
 )
 
+var (
+	// the released version
+	version string = "development"
+	// the time the binary was built
+	buildDate string = "September 2025"
+	// global --help flag
+	helpFlag *bool
+	// global --version flag
+	versionFlag *bool
+)
+
+func init() {
+	flag.String("port", "9680", "The port number to listen on for HTTP requests")
+	flag.String("address", "0.0.0.0", "The address to listen on for HTTP requests")
+	flag.String("log-level", "info", "The minimum logging level; levels are, in ascending order: debug, info, warn, error")
+	flag.String("hmc-name", "", "The name of connected HMC, e.g. HMC1")
+	flag.String("hmc-hostname", "hmc.localhost", "The host name of connected HMC api interface. Hrdcored port 12443, e.g. https://host:12443.")
+	flag.String("tls-skip-verify", "no", "For HTTPS scheme, should certificates signed by unknown authority being ignored")
+	flag.StringP("config", "c", "", "The path to a custom configuration file. NOTE: it must be in yaml format.")
+	flag.CommandLine.SortFlags = false
+
+	helpFlag = flag.BoolP("help", "h", false, "show this help message")
+	versionFlag = flag.Bool("version", false, "show version and build information")
+}
+
+
 func main() {
+	flag.Parse()
+
+	switch {
+	case *helpFlag:
+		showHelp()
+	case *versionFlag:
+		showVersion()
+	default:
+		run()
+	}
+}
+
+func run() {
+	var err error
+
+	config, err := config.New(flag.CommandLine)
+	if err != nil {
+		log.Fatalf("Could not initialize config: %s", err)
+	}
+
+	globalConfig := config.Viper
+
+
 	fmt.Println("Start program")
 	// Handle graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
