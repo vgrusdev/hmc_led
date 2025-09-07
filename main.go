@@ -73,16 +73,11 @@ func run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	hmcName := "HMC1"
-	hmcHostname := "10.134.17.107"
-	user := "vgviewer"
-	password := "abc12abc"
 	hmc := NewHMC(globalConfig)
-
 	defer hmc.Shutdown()
 
 	reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	err := hmc.Logon(reqCtx)
+	err = hmc.Logon(reqCtx)
 	cancel()
 	if err != nil {
 		fmt.Println("Logon Error: %v\n", err)
