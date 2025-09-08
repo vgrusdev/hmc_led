@@ -83,6 +83,14 @@ func run() {
 		fmt.Printf("Logon Error: ", err)
 	}
 
+	fmt.Println("Waiting for 20 sec")
+	time.Sleep(20 * time.Second)
+
+	fmt.Printf("Running logoff")
+	hmc.Logoff(ctx)
+
+	fmt.Println("Waiting for 20 sec")
+	time.Sleep(20 * time.Second)
 }
 
 func showHelp() {

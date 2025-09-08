@@ -119,9 +119,52 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 
 	fmt.Printf("Token: %s\n", response.Token)
+
+	hmc.token = response.Token
+	hmc.connected = true
+	return nil
+}
+
+func (hmc *HMC) Logoff(ctx context.Context) error {
+
+	if !hmc.connected {
+		//slog.Error("Attempting to login when connected")
+		return fmt.Errorf("Attempting to logoff when not connected")
+	}
+
+	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url)
+	if err != nil {
+		return err
+	}
+
+	// Set headers
+	req.Header.Set("X-API-Session", hmc.token)
+
+	// Execute request
+	resp, err := hmc.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Logoff:")
+	fmt.Printf("Status:%s, %d\n", resp.Status, resp.StatusCode)
+	fmt.Printf("Header:%v\n", resp.Header)
+
+	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
+		// Parse response
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("Logoff failed error code: %s, url: %s, body:%s\n", resp.Status, url, body)
+	}
+
+	hmc.token = ""
+	hmc.connected = false
 	return nil
 }
 
 func (hmc *HMC) Shutdown() {
+	hmc.Logoff()
 	hmc.client.CloseIdleConnections()
 }
