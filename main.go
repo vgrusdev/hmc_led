@@ -98,7 +98,7 @@ func run() {
 		log.Warnln("Shutdown signal received, stopping...")
 
 		// Create a deadline to wait for.
-		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 8*time.Second)
+		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelSrv()
 
 		// Doesn't block if no connections, but will otherwise wait

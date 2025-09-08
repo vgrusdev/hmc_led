@@ -66,5 +66,6 @@ func (s *Srv) Run(c chan string) {
 
 func (s *Srv) Shutdown(ctx context.Context) {
 	slog.Info("Srv shutting down..")
+	time.Sleep(10 * time.Second)
 	s.srv.Shutdown(ctx)
 }
