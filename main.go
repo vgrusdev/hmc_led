@@ -79,7 +79,7 @@ func run() {
 
 	// Init HMC struct
 	hmc := NewHMC(globalConfig)
-	defer hmc.Shutdown()
+	defer hmc.CloseIdleConnections()
 
 	// Init http server
 	srv := Srv{}
@@ -101,21 +101,39 @@ func run() {
 		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelSrv()
 
-		// Doesn't block if no connections, but will otherwise wait
-		// until the timeout deadline.
-		srv.Shutdown(ctxSrv)
-		// Optionally, you could run srv.Shutdown in a goroutine and block on
-		// <-ctx.Done() if your application should wait for other services
-		// to finalize based on context cancellation.
+		srvShutdCh := make(chan string)
+		go srv.Shutdown(ctxSrv, srvShutdCh)
+		
+		hmcLogoffCh := make(chan string)
+		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
 		s, ok := <-chSrv
 		if ok == true {
 			slog.Info(s)
 		}
+		s, ok = <- hmcLogoffCh
+		if ok == true {
+			slog.Info(s)
+		}
+		s, ok = <- srvShutdCh
+		if ok == true {
+			slog.Info(s)
+		}
 
 	case s := <-chSrv: // srv.ListenAndServe ended itself, probably due to error.
 		slog.Error(s)
+		// Create a deadline to wait for.
+
+		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelSrv()
+		hmcLogoffCh := make(chan string)
+		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
+
+		// wait for srv.shutdown results
+		s, ok = <- hmcLogoffCh
+		if ok == true {
+			slog.Info(s)
 	}
 
 	/*

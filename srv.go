@@ -64,8 +64,9 @@ func (s *Srv) Run(c chan string) {
 	close(c)
 }
 
-func (s *Srv) Shutdown(ctx context.Context) {
+func (s *Srv) Shutdown(ctx context.Context, c chan string) {
 	slog.Info("Srv shutting down..")
-	time.Sleep(10 * time.Second)
-	s.srv.Shutdown(ctx)
+	err := s.srv.Shutdown(ctx)
+	c <- fmt.Sprintf("Server shutdown %s", err)
+	close(c)
 }

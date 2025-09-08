@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	//"os"
@@ -164,7 +165,15 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	return nil
 }
 
-func (hmc *HMC) Shutdown() {
+func (hmc *HMC) Shutdown(ctx context.Context, c chan string) {
+
+	slog.Info("HMC Logoff and connection shutting down..")
+	err := hmc.Logoff(ctx)
+	c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
+	close(c)
+}
+
+func (hmc *HMC) CloseIdleConnections() {
 	//hmc.Logoff()
 	hmc.client.CloseIdleConnections()
 }
