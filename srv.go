@@ -66,7 +66,10 @@ func (s *Srv) Run(c chan string) {
 
 func (s *Srv) Shutdown(ctx context.Context, c chan string) {
 	slog.Info("Srv shutting down..")
-	err := s.srv.Shutdown(ctx)
-	c <- fmt.Sprintf("Server shutdown %s", err)
+	if err := s.srv.Shutdown(ctx); err != nil {
+		c <- fmt.Sprintf("Server shutdown %s", err)
+	} else {
+		c <- "OK"
+	}
 	close(c)
 }

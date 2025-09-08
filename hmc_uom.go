@@ -168,8 +168,11 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 func (hmc *HMC) Shutdown(ctx context.Context, c chan string) {
 
 	slog.Info("HMC Logoff and connection shutting down..")
-	err := hmc.Logoff(ctx)
-	c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
+	if err := hmc.Logoff(ctx); err != nil {
+		c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
+	} else {
+		c <- "OK"
+	}
 	close(c)
 }
 
