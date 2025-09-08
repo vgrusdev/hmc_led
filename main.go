@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+
+	//"log"
 	"runtime"
 
 	//"crypto/tls"
@@ -17,7 +19,9 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+
 	"github.com/vgrusdev/hmc_led/internal/config"
 )
 
@@ -73,24 +77,65 @@ func run() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Init HMC struct
 	hmc := NewHMC(globalConfig)
 	defer hmc.Shutdown()
 
-	reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	err = hmc.Logon(reqCtx)
-	cancel()
-	if err != nil {
-		fmt.Printf("Logon Error: ", err)
+	// Init http server
+	srv := Srv{}
+	srv.SrvInit(ctx, globalConfig, hmc)
+
+	// run http server, waiting for chan message in case of server ended.
+	chSrv := make(chan string)
+	// run srv.ListenAndServe()
+	go srv.Run(chSrv)
+
+	//========================
+
+	// Block until we receive our signal.
+	select { // which channel will be unblocked first ?
+	case <-ctx.Done():
+		log.Warnln("Shutdown signal received, stopping...")
+
+		// Create a deadline to wait for.
+		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancelSrv()
+
+		// Doesn't block if no connections, but will otherwise wait
+		// until the timeout deadline.
+		srv.Shutdown(ctxSrv)
+		// Optionally, you could run srv.Shutdown in a goroutine and block on
+		// <-ctx.Done() if your application should wait for other services
+		// to finalize based on context cancellation.
+
+		// wait for srv.shutdown results
+		s, ok := <-chSrv
+		if ok == true {
+			slog.Info(s)
+		}
+
+	case s := <-chSrv: // srv.ListenAndServe ended itself, probably due to error.
+		slog.Error(s)
 	}
 
-	fmt.Println("Waiting for 20 sec")
-	time.Sleep(20 * time.Second)
+	/*
+	   reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	   err = hmc.Logon(reqCtx)
+	   cancel()
 
-	fmt.Printf("Running logoff")
-	hmc.Logoff(ctx)
+	   	if err != nil {
+	   		fmt.Printf("Logon Error: ", err)
+	   	}
 
-	fmt.Println("Waiting for 20 sec")
-	time.Sleep(20 * time.Second)
+	   fmt.Println("Waiting for 20 sec")
+	   time.Sleep(20 * time.Second)
+
+	   fmt.Printf("Running logoff")
+	   hmc.Logoff(ctx)
+
+	   fmt.Println("Waiting for 20 sec")
+	   time.Sleep(20 * time.Second)
+	*/
 }
 
 func showHelp() {

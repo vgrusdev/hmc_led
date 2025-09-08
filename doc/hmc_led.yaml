@@ -2,8 +2,8 @@
 # The values displayed below are the defaults, used in case no configuration is provided.
 
 # The listening TCP/IP address and port.
-address: "0.0.0.0"
-port: "9680"
+srv_addr: "0.0.0.0"
+srv_port: "9680"
 
 # The log level.
 #
