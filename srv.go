@@ -29,7 +29,7 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/health", HealthCheck).Methods("GET")
-	router.HandleFunc("/alert", s.Alert).Methods("POST") // Use per-Alert annotation, labels, images
+	//router.HandleFunc("/alert", s.Alert).Methods("POST") // Use per-Alert annotation, labels, images
 
 	s.ctx = ctx
 	s.hmc = hmc
