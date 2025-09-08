@@ -165,6 +165,6 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 }
 
 func (hmc *HMC) Shutdown() {
-	hmc.Logoff()
+	//hmc.Logoff()
 	hmc.client.CloseIdleConnections()
 }
