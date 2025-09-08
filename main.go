@@ -103,7 +103,7 @@ func run() {
 
 		srvShutdCh := make(chan string)
 		go srv.Shutdown(ctxSrv, srvShutdCh)
-		
+
 		hmcLogoffCh := make(chan string)
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
@@ -112,11 +112,11 @@ func run() {
 		if ok == true {
 			slog.Info(s)
 		}
-		s, ok = <- hmcLogoffCh
+		s, ok = <-hmcLogoffCh
 		if ok == true {
 			slog.Info(s)
 		}
-		s, ok = <- srvShutdCh
+		s, ok = <-srvShutdCh
 		if ok == true {
 			slog.Info(s)
 		}
@@ -131,9 +131,10 @@ func run() {
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
-		s, ok = <- hmcLogoffCh
+		s, ok := <-hmcLogoffCh
 		if ok == true {
 			slog.Info(s)
+		}
 	}
 
 	/*
