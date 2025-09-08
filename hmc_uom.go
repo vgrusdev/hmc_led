@@ -78,7 +78,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 
 	fmt.Printf("url: %s\npayload: %s\n", url, payload)
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, strings.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, strings.NewReader(payload))
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, "DELETE", url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return err
 	}
