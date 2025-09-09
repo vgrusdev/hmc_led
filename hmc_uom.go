@@ -205,19 +205,18 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 
 	//req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
 
 	if err != nil {
 		return []byte{}, fmt.Errorf("%s %w", myname, err)
 	}
 
 	// Set headers
-	req.Header.Set("X-API-Session", "hmc.token")
-	//req.Header.Set("X-API-Session", hmc.token)
+	req.Header.Set("X-API-Session", hmc.token)
 	// Set custom headers
-	//for key, value := range headers {
-	//	req.Header.Set(key, value)
-	//}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
 	fmt.Printf("Request:%s\n", req)
 	// Execute request
 	resp, err := hmc.client.Do(req)
