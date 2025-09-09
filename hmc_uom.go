@@ -70,10 +70,10 @@ func NewHMC(config *viper.Viper) *HMC {
 
 func (hmc *HMC) Logon(ctx context.Context) error {
 
-	if hmc.connected {
-		//slog.Error("Attempting to login when connected")
-		return fmt.Errorf("Attempting to login when connected")
-	}
+	//if hmc.connected {
+	//	//slog.Error("Attempting to login when connected")
+	//	return fmt.Errorf("Attempting to login when connected")
+	//}
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
@@ -99,8 +99,8 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	log.Infoln("Logon:")
-	log.Infof("Status:%s, %d", resp.Status, resp.StatusCode)
+	log.Debugln("Logon:")
+	log.Infof("Logon status:%s, %d", resp.Status, resp.StatusCode)
 	log.Debugf("Header:%v\n", resp.Header)
 
 	if resp.StatusCode != 200 {
@@ -153,8 +153,8 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	log.Infoln("Logoff:")
-	log.Infof("Status:%s, %d", resp.Status, resp.StatusCode)
+	log.Debugln("Logoff:")
+	log.Infof("Logoff status:%s, %d", resp.Status, resp.StatusCode)
 	log.Debugf("Header:%v\n", resp.Header)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {

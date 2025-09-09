@@ -72,9 +72,13 @@ func run() {
 	hmc := NewHMC(globalConfig)
 	defer hmc.CloseIdleConnections()
 
-	hmc.Logon(ctx)
+	if err := hmc.Logon(ctx); err != nil {
+		log.Errorf("Logon error %s", err)
+	}
 	time.Sleep(1 * time.Second)
-	hmc.Logon(ctx)
+	if err := hmc.Logon(ctx); err != nil {
+		log.Errorf("Logon error %s", err)
+	}
 
 	// Init http server
 	srv := Srv{}
