@@ -76,6 +76,9 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		return fmt.Errorf("Attempting to logon when already connected")
 	}
 
+	hmc.token = ""
+	hmc.connected = false
+
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
 		"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
@@ -235,6 +238,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 		log.Infof("%s not connected by responce. Trying to logon", myname)
 		if err := hmc.Logon(ctx); err == nil {
 			//resp.Body.Close()
+			req.Header.Set("X-API-Session", hmc.token)
 			resp, err := hmc.client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
