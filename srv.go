@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -53,23 +52,15 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
-func (s *Srv) Run(c chan string) {
+func (s *Srv) Run(c chan error) {
 	slog.Info("Running", "Listen:", s.srv.Addr)
 
-	if err := s.srv.ListenAndServe(); err != nil {
-		c <- fmt.Sprintf("%s", err)
-	} else {
-		c <- "OK"
-	}
+	c <- s.srv.ListenAndServe()
 	close(c)
 }
 
-func (s *Srv) Shutdown(ctx context.Context, c chan string) {
+func (s *Srv) Shutdown(ctx context.Context, c chan error) {
 	slog.Info("Srv shutting down..")
-	if err := s.srv.Shutdown(ctx); err != nil {
-		c <- fmt.Sprintf("Server shutdown %s", err)
-	} else {
-		c <- "OK"
-	}
+	c <- s.srv.Shutdown(ctx)
 	close(c)
 }

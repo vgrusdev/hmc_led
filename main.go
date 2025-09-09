@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log/slog"
+	//"log/slog"
 
 	//"log"
 	"runtime"
@@ -71,7 +71,7 @@ func run() {
 		log.Fatalf("Could not initialize config: %s", err)
 	}
 
-	fmt.Println("Start program")
+	log.Infoln("Program start.")
 
 	// Handle graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -88,7 +88,7 @@ func run() {
 	srv.SrvInit(ctx, globalConfig, hmc)
 
 	// run http server, waiting for chan message in case of server ended.
-	chSrv := make(chan string)
+	chSrv := make(chan error)
 	// run srv.ListenAndServe()
 	go srv.Run(chSrv)
 
@@ -103,32 +103,37 @@ func run() {
 		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelSrv()
 
-		srvShutdCh := make(chan string)
+		srvShutdCh := make(chan error)
 		go srv.Shutdown(ctxSrv, srvShutdCh)
 
 		hmcLogoffCh := make(chan error)
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
-		s, ok := <-chSrv
-		if ok == true {
-			slog.Info(s)
+		if e, ok := <-chSrv; ok == true {
+			if e != nil {
+				log.Warnf("Srv Listen&Serve: %s", e)
+			} else {
+				log.Infoln("Srv Listen&Serve: down")
+			}
 		}
-		e, ok := <-hmcLogoffCh
-		if ok == true {
+		if e, ok := <-hmcLogoffCh; ok == true {
 			if e != nil {
 				log.Warnf("HMC logoff: %s", e)
 			} else {
 				log.Info("HMC Logoff: OK")
 			}
 		}
-		s, ok = <-srvShutdCh
-		if ok == true {
-			slog.Info(s)
+		if e, ok := <-srvShutdCh; ok == true {
+			if e != nil {
+				log.Warnf("Srv shutdown: %s", e)
+			} else {
+				log.Info("Srv shutdown: OK")
+			}
 		}
 
-	case s := <-chSrv: // srv.ListenAndServe ended itself, probably due to error.
-		slog.Error(s)
+	case e := <-chSrv: // srv.ListenAndServe ended itself, probably due to error.
+		log.Errorf("Server: %s", e)
 		// Create a deadline to wait for.
 
 		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
@@ -137,8 +142,7 @@ func run() {
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
-		e, ok := <-hmcLogoffCh
-		if ok == true {
+		if e, ok := <-hmcLogoffCh; ok == true {
 			if e != nil {
 				log.Warnf("HMC logoff: %s", e)
 			} else {
