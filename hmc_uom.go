@@ -212,7 +212,8 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	}
 
 	// Set headers
-	req.Header.Add("X-API-Session", hmc.token)
+	req.Header.Set("X-API-Session", "hmc.token")
+	//req.Header.Set("X-API-Session", hmc.token)
 	// Set custom headers
 	//for key, value := range headers {
 	//	req.Header.Set(key, value)
