@@ -263,3 +263,81 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
+
+func (hmc *HMC) GetInfoByUrl2(ctx context.Context, urlPath string, headers map[string]string) ([]byte, error) {
+
+	myname := "hmc.getInfoByUrl"
+
+	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
+
+	if !hmc.connected {
+		log.Infof("%s not connected. Trying to logon", myname)
+		if err := hmc.Logon(ctx); err != nil {
+			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+		}
+	}
+
+	//url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+	//url := "https://" + hmc.hmcHostname + ":12443" + urlPath
+	url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
+
+	//req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
+
+	if err != nil {
+		return []byte{}, fmt.Errorf("%s %w", myname, err)
+	}
+
+	// Set headers
+	req.Header.Set("X-API-Session", hmc.token)
+	req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
+	// Set custom headers
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	fmt.Printf("Request:%s\n", req)
+	// Execute request
+	resp, err := hmc.client.Do(req)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer resp.Body.Close()
+	body, errBody := io.ReadAll(resp.Body)
+
+	log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
+	//log.Debugf("Header:%v\n", resp.Header)
+	//log.Debugf("Body: %s\n", body)
+
+	if resp.StatusCode == 200 {
+		return body, errBody
+	} else if resp.StatusCode == 204 {
+		return []byte{}, nil
+	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
+
+		// try to logon once again
+		log.Infof("%s not connected by responce. Trying to logon once again", myname)
+		if err := hmc.Logon(ctx); err == nil {
+			//resp.Body.Close()
+			req.Header.Set("X-API-Session", hmc.token)
+			resp, err := hmc.client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				body, errBody := io.ReadAll(resp.Body)
+
+				log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
+				//log.Debugf("Header:%v\n", resp.Header)
+				//log.Debugf("Body: %s\n", body)
+
+				if resp.StatusCode == 200 {
+					return body, errBody
+				} else if resp.StatusCode == 204 {
+					return []byte{}, nil
+				} else {
+					return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
+				}
+			}
+		}
+	}
+
+	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
+}
