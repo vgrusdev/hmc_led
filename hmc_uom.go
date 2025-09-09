@@ -160,7 +160,7 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	//log.Debugf("Header:%v\n", resp.Header)
 
 	body, _ := io.ReadAll(resp.Body)
-	log.Debugf("Logoff Body: %s\n", body)
+	log.Debugf("Logoff Body: %s", body)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
 		return fmt.Errorf("Logoff failed error code: %s, url: %s", resp.Status, url)
@@ -194,14 +194,12 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
 
-	/*
-		if !hmc.connected {
-			log.Infof("%s not connected. Trying to logon", myname)
-			if err := hmc.Logon(ctx); err != nil {
-				return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
-			}
+	if !hmc.connected {
+		log.Infof("%s not connected. Trying to logon", myname)
+		if err := hmc.Logon(ctx); err != nil {
+			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
-	*/
+	}
 
 	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
 
@@ -213,9 +211,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	// Set headers
 	req.Header.Set("X-API-Session", hmc.token)
 	// Set custom headers
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
+	//for key, value := range headers {
+	//	req.Header.Set(key, value)
+	//}
 
 	// Execute request
 	resp, err := hmc.client.Do(req)
