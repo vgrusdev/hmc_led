@@ -104,7 +104,7 @@ func run() {
 		srvShutdCh := make(chan string)
 		go srv.Shutdown(ctxSrv, srvShutdCh)
 
-		hmcLogoffCh := make(chan string)
+		hmcLogoffCh := make(chan error)
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
@@ -112,9 +112,13 @@ func run() {
 		if ok == true {
 			slog.Info(s)
 		}
-		s, ok = <-hmcLogoffCh
+		e, ok := <-hmcLogoffCh
 		if ok == true {
-			slog.Info(s)
+			if e != nil {
+				log.Warnf("HMC logoff: %s", e)
+			} else {
+				log.Info("HMC Logoff: OK")
+			}
 		}
 		s, ok = <-srvShutdCh
 		if ok == true {
