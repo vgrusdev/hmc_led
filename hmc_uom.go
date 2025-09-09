@@ -235,7 +235,8 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 		return []byte{}, nil
 	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
 
-		log.Infof("%s not connected by responce. Trying to logon", myname)
+		// try to logon once again
+		log.Infof("%s not connected by responce. Trying to logon once again", myname)
 		if err := hmc.Logon(ctx); err == nil {
 			//resp.Body.Close()
 			req.Header.Set("X-API-Session", hmc.token)
@@ -252,6 +253,8 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 					return body, errBody
 				} else if resp.StatusCode == 204 {
 					return []byte{}, nil
+				} else {
+					return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 				}
 			}
 		}
