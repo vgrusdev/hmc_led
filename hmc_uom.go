@@ -100,29 +100,28 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	log.Debugln("Logon:")
+	//log.Debugln("Logon:")
 	log.Infof("Logon status:%s, %d", resp.Status, resp.StatusCode)
-	log.Debugf("Header:%v\n", resp.Header)
+	//log.Debugf("Logon Header:%v\n", resp.Header)
 
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("Logon failed error code: %s url: %s\n", resp.Status, url)
-	}
-	// Parse response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("Body: %s\n", body)
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("Logon failed error code: %s url: %s\n", resp.Status, url)
+	}
+	//log.Debugf("Body: %s\n", body)
 
+	// Parse logon response to get the token
 	type LogonResponse struct {
 		Token string `xml:"X-API-Session"`
 	}
 	var response LogonResponse
 	if err := xml.Unmarshal([]byte(body), &response); err != nil {
-		return fmt.Errorf("failed to parse XML: %w", err)
+		return fmt.Errorf("Logon failed to parse XML: %w", err)
 	}
-
 	log.Debugf("Token: %s\n", response.Token)
 
 	hmc.token = response.Token
@@ -154,16 +153,15 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	log.Debugln("Logoff:")
 	log.Infof("Logoff status:%s, %d", resp.Status, resp.StatusCode)
-	log.Debugf("Header:%v\n", resp.Header)
+	//log.Debugf("Header:%v\n", resp.Header)
+
+	body, _ := io.ReadAll(resp.Body)
+	log.Debugf("Logoff Body: %s\n", body)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
-		// Parse response
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("Logoff failed error code: %s, url: %s, body:%s\n", resp.Status, url, body)
+		return fmt.Errorf("Logoff failed error code: %s, url: %s", resp.Status, url)
 	}
-
 	hmc.token = ""
 	hmc.connected = false
 	return nil
@@ -194,6 +192,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
 
 	if !hmc.connected {
+		log.Info("%s not cconnected. Trying to logon.", myname)
 		if err := hmc.Logon(ctx); err != nil {
 			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
