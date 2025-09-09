@@ -81,6 +81,8 @@ func run() {
 	hmc := NewHMC(globalConfig)
 	defer hmc.CloseIdleConnections()
 
+	hmc.Logon(ctx)
+
 	// Init http server
 	srv := Srv{}
 	srv.SrvInit(ctx, globalConfig, hmc)
