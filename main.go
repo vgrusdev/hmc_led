@@ -2,20 +2,11 @@ package main
 
 import (
 	"context"
-	//"log/slog"
-
-	//"log"
-	"runtime"
-
-	//"crypto/tls"
-	//"encoding/xml"
 	"fmt"
-	//"io"
-	//"net/http"
 	"os"
 	"os/signal"
-
-	//"sync/atomic"
+	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
@@ -37,12 +28,12 @@ var (
 )
 
 func init() {
-	flag.String("port", "9680", "The port number to listen on for HTTP requests")
-	flag.String("address", "0.0.0.0", "The address to listen on for HTTP requests")
-	flag.String("log-level", "info", "The minimum logging level; levels are, in ascending order: debug, info, warn, error")
-	flag.String("hmc-name", "", "The name of connected HMC, e.g. HMC1")
-	flag.String("hmc-hostname", "hmc.localhost", "The host name of connected HMC api interface. Hrdcored port 12443, e.g. https://host:12443.")
-	flag.String("tls-skip-verify", "no", "For HTTPS scheme, should certificates signed by unknown authority being ignored")
+	flag.String("srv_port", "9680", "The port number to listen on for HTTP requests")
+	flag.String("srv_addr", "0.0.0.0", "The address to listen on for HTTP requests")
+	flag.String("log_level", "info", "The minimum logging level; levels are, in ascending order: debug, info, warn, error")
+	flag.String("hmc_name", "", "The name of connected HMC, e.g. HMC1")
+	flag.String("hmc_hostname", "hmc.localhost", "The host name of connected HMC api interface. Hrdcored port 12443, e.g. https://host:12443.")
+	flag.String("tls_skip_verify", "no", "For HTTPS scheme, should certificates signed by unknown authority being ignored")
 	flag.StringP("config", "c", "", "The path to a custom configuration file. NOTE: it must be in yaml format.")
 	flag.CommandLine.SortFlags = false
 
@@ -81,7 +72,7 @@ func run() {
 	hmc := NewHMC(globalConfig)
 	defer hmc.CloseIdleConnections()
 
-	hmc.Logon(ctx)
+	//hmc.Logon(ctx)
 
 	// Init http server
 	srv := Srv{}
@@ -99,76 +90,41 @@ func run() {
 	case <-ctx.Done():
 		log.Warnln("Shutdown signal received, stopping...")
 
-		// Create a deadline to wait for.
-		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancelSrv()
+		// Create a deadline to wait for shutdown everything
+		ctxShutdown, cancelShutd := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelShutd()
 
-		srvShutdCh := make(chan error)
-		go srv.Shutdown(ctxSrv, srvShutdCh)
+		var wg sync.WaitGroup
 
-		hmcLogoffCh := make(chan error)
-		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
+		wg.Add(1)
+		go srv.Shutdown(ctxShutdown, &wg)
+		wg.Add(1)
+		go hmc.Shutdown(ctxShutdown, &wg)
 
 		// wait for srv.shutdown results
 		if e, ok := <-chSrv; ok == true {
 			if e != nil {
-				log.Warnf("Srv Listen&Serve: %s", e)
+				log.Warnf("Srv Down: %s", e)
 			} else {
-				log.Infoln("Srv Listen&Serve: down")
+				log.Infoln("Srv Down: OK")
 			}
 		}
-		if e, ok := <-hmcLogoffCh; ok == true {
-			if e != nil {
-				log.Warnf("HMC logoff: %s", e)
-			} else {
-				log.Info("HMC Logoff: OK")
-			}
-		}
-		if e, ok := <-srvShutdCh; ok == true {
-			if e != nil {
-				log.Warnf("Srv shutdown: %s", e)
-			} else {
-				log.Info("Srv shutdown: OK")
-			}
-		}
+		wg.Wait()
 
 	case e := <-chSrv: // srv.ListenAndServe ended itself, probably due to error.
 		log.Errorf("Server: %s", e)
-		// Create a deadline to wait for.
+		// Create a deadline to wait for shutdown timeout.
 
-		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancelSrv()
-		hmcLogoffCh := make(chan error)
-		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
+		ctxShutdown, cancelShutd := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelShutd()
 
-		// wait for srv.shutdown results
-		if e, ok := <-hmcLogoffCh; ok == true {
-			if e != nil {
-				log.Warnf("HMC logoff: %s", e)
-			} else {
-				log.Info("HMC Logoff: OK")
-			}
-		}
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go hmc.Shutdown(ctxShutdown, &wg)
+		wg.Wait()
+
 	}
-
-	/*
-	   reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	   err = hmc.Logon(reqCtx)
-	   cancel()
-
-	   	if err != nil {
-	   		fmt.Printf("Logon Error: ", err)
-	   	}
-
-	   fmt.Println("Waiting for 20 sec")
-	   time.Sleep(20 * time.Second)
-
-	   fmt.Printf("Running logoff")
-	   hmc.Logoff(ctx)
-
-	   fmt.Println("Waiting for 20 sec")
-	   time.Sleep(20 * time.Second)
-	*/
 }
 
 func showHelp() {

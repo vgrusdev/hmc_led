@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"log/slog"
+	//"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	//"bytes"
@@ -11,6 +12,7 @@ import (
 	//"io"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"context"
@@ -53,14 +55,20 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func (s *Srv) Run(c chan error) {
-	slog.Info("Running", "Listen:", s.srv.Addr)
+	log.Infof("Srv Running", "Listening: %s", s.srv.Addr)
 
 	c <- s.srv.ListenAndServe()
 	close(c)
 }
 
-func (s *Srv) Shutdown(ctx context.Context, c chan error) {
-	slog.Info("Srv shutting down..")
-	c <- s.srv.Shutdown(ctx)
-	close(c)
+func (s *Srv) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	log.Infoln("Srv shutting down..")
+	if err := s.srv.Shutdown(ctx); err != nil {
+		log.Warnf("Srv shutdown: %s", err)
+	} else {
+		log.Infoln("Srv shutdown OK")
+	}
 }

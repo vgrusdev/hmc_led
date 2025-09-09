@@ -6,8 +6,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log/slog"
+
+	//"log/slog"
 	"net/http"
+	"sync"
 
 	//"os"
 	//"os/signal"
@@ -16,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -77,7 +80,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
 		"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
 
-	fmt.Printf("url: %s\npayload: %s\n", url, payload)
+	log.Debugf("hmc.Logon: url: %s\npayload: %s", url, payload)
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, strings.NewReader(payload))
 	if err != nil {
@@ -96,9 +99,9 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Logon:")
-	fmt.Printf("Status:%s, %d\n", resp.Status, resp.StatusCode)
-	fmt.Printf("Header:%v\n", resp.Header)
+	log.Infoln("Logon:")
+	log.Infof("Status:%s, %d", resp.Status, resp.StatusCode)
+	log.Debugf("Header:%v\n", resp.Header)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Logon failed error code: %s url: %s\n", resp.Status, url)
@@ -109,7 +112,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		return err
 	}
 
-	fmt.Printf("Body: %s\n", body)
+	log.Debugf("Body: %s\n", body)
 
 	type LogonResponse struct {
 		Token string `xml:"X-API-Session"`
@@ -119,7 +122,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		return fmt.Errorf("failed to parse XML: %w", err)
 	}
 
-	fmt.Printf("Token: %s\n", response.Token)
+	log.Debugf("Token: %s\n", response.Token)
 
 	hmc.token = response.Token
 	hmc.connected = true
@@ -150,9 +153,9 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Logoff:")
-	fmt.Printf("Status:%s, %d\n", resp.Status, resp.StatusCode)
-	fmt.Printf("Header:%v\n", resp.Header)
+	log.Infoln("Logoff:")
+	log.Infof("Status:%s, %d", resp.Status, resp.StatusCode)
+	log.Debugf("Header:%v\n", resp.Header)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
 		// Parse response
@@ -165,19 +168,20 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	return nil
 }
 
-func (hmc *HMC) Shutdown(ctx context.Context, c chan error) {
+func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 
-	slog.Info("HMC Logoff and connection shutting down..")
-	c <- hmc.Logoff(ctx)
-	//if err := hmc.Logoff(ctx); err != nil {
-	//	c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
-	//} else {
-	//	c <- "OK"
-	//}
-	close(c)
+	defer wg.Done()
+
+	log.Infoln("HMC shutting down..")
+	if err := hmc.Logoff(ctx); err != nil {
+		log.Warnf("HMC shutdown: %s", err)
+	} else {
+		log.Infoln("HMC shutdown OK")
+	}
 }
 
 func (hmc *HMC) CloseIdleConnections() {
 	//hmc.Logoff()
+	log.Infoln("HMC closing idle connections.")
 	hmc.client.CloseIdleConnections()
 }
