@@ -137,7 +137,11 @@ func run() {
 		// wait for srv.shutdown results
 		e, ok := <-hmcLogoffCh
 		if ok == true {
-			slog.Info(e)
+			if e != nil {
+				log.Warnf("HMC logoff: %s", e)
+			} else {
+				log.Info("HMC Logoff: OK")
+			}
 		}
 	}
 
