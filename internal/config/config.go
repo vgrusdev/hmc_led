@@ -36,7 +36,7 @@ func New(flagSet *flag.FlagSet) (*viper.Viper, error) {
 		return nil, errors.Wrap(err, "could not load configuration file")
 	}
 
-	setLogLevel(config.GetString("log-level"))
+	setLogLevel(config.GetString("log_level"))
 
 	return config, nil
 }
