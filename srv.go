@@ -55,7 +55,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func (s *Srv) Run(c chan error) {
-	log.Infof("Srv Running", "Listening: %s", s.srv.Addr)
+	log.Infof("Srv Running. Listening: %s", s.srv.Addr)
 
 	c <- s.srv.ListenAndServe()
 	close(c)
