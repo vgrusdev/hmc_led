@@ -165,14 +165,15 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	return nil
 }
 
-func (hmc *HMC) Shutdown(ctx context.Context, c chan string) {
+func (hmc *HMC) Shutdown(ctx context.Context, c chan error) {
 
 	slog.Info("HMC Logoff and connection shutting down..")
-	if err := hmc.Logoff(ctx); err != nil {
-		c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
-	} else {
-		c <- "OK"
-	}
+	c <- hmc.Logoff(ctx)
+	//if err := hmc.Logoff(ctx); err != nil {
+	//	c <- fmt.Sprintf("HMC Logoff and shutdown %s", err)
+	//} else {
+	//	c <- "OK"
+	//}
 	close(c)
 }
 
