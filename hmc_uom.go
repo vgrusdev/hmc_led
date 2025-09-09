@@ -295,7 +295,7 @@ func (hmc *HMC) GetInfoByUrl2(ctx context.Context, urlPath string, headers map[s
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	fmt.Printf("Request:%s\n", req)
+	fmt.Printf("Request:%v\n", req)
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
