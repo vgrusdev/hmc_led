@@ -70,10 +70,10 @@ func NewHMC(config *viper.Viper) *HMC {
 
 func (hmc *HMC) Logon(ctx context.Context) error {
 
-	//if hmc.connected {
-	//	//slog.Error("Attempting to login when connected")
-	//	return fmt.Errorf("Attempting to login when connected")
-	//}
+	if hmc.connected {
+		//log.Errorln("Attempting to login when connected")
+		return fmt.Errorf("Attempting to logon when already connected")
+	}
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
