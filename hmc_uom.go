@@ -81,7 +81,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		"xmlns:mc=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\">" +
 		"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
 
-	log.Debugf("hmc.Logon: url: %s\npayload: %s", url, payload)
+	//log.Debugf("hmc.Logon: url: %s\npayload: %s", url, payload)
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, strings.NewReader(payload))
 	if err != nil {
@@ -191,12 +191,14 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
 
-	if !hmc.connected {
-		log.Info("%s not cconnected. Trying to logon.", myname)
-		if err := hmc.Logon(ctx); err != nil {
-			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+	/*
+		if !hmc.connected {
+			log.Infof("%s not cconnected. Trying to logon", myname)
+			if err := hmc.Logon(ctx); err != nil {
+				return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+			}
 		}
-	}
+	*/
 
 	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
 
