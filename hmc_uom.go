@@ -15,6 +15,7 @@ import (
 	//"os/signal"
 	//"sync/atomic"
 	//"syscall"
+
 	"strings"
 	"time"
 
@@ -184,4 +185,51 @@ func (hmc *HMC) CloseIdleConnections() {
 	//hmc.Logoff()
 	log.Infoln("HMC closing idle connections.")
 	hmc.client.CloseIdleConnections()
+}
+
+func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[string]string) ([]byte, error) {
+
+	myname := "hmc.getInfoByUrl"
+
+	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
+
+	if !hmc.connected {
+		if err := hmc.Logon(ctx); err != nil {
+			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+		}
+	}
+
+	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return []byte{}, fmt.Errorf("%s %w", myname, err)
+	}
+
+	// Set headers
+	req.Header.Set("X-API-Session", hmc.token)
+	// Set custom headers
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+
+	// Execute request
+	resp, err := hmc.client.Do(req)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer resp.Body.Close()
+	body, errBody := io.ReadAll(resp.Body)
+
+	log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
+	log.Debugf("Header:%v\n", resp.Header)
+	log.Debugf("Body: %s\n", body)
+
+	if resp.StatusCode == 200 {
+		return body, errBody
+	} else if resp.StatusCode == 204 {
+		return []byte{}, err
+	} else {
+		return []byte{}, fmt.Errorf("%s response status: %s, url: %s, errBody: %s, body:%s\n", myname, resp.Status, url, err, body)
+	}
 }
