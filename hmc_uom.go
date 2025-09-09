@@ -17,7 +17,6 @@ import (
 	//"syscall"
 
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -48,10 +47,10 @@ func NewHMC(config *viper.Viper) *HMC {
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: tls_skip_verify, // HMC appears not to have a genuine recognised CA certficate
 		},
-		MaxIdleConns:        1,
-		MaxIdleConnsPerHost: 1,
-		IdleConnTimeout:     60 * time.Second,
-		DisableKeepAlives:   false, // Explicitly enable keep-alive
+		//MaxIdleConns:        1,
+		//MaxIdleConnsPerHost: 1,
+		//IdleConnTimeout:     60 * time.Second,
+		//DisableKeepAlives:   false, // Explicitly enable keep-alive
 	}
 
 	hmc := HMC{
@@ -201,9 +200,13 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 		}
 	}
 
-	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+	//url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+	//url := "https://" + hmc.hmcHostname + ":12443" + urlPath
+	url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	//req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+
 	if err != nil {
 		return []byte{}, fmt.Errorf("%s %w", myname, err)
 	}
@@ -214,7 +217,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	//for key, value := range headers {
 	//	req.Header.Set(key, value)
 	//}
-
+	fmt.Printf("Request:%s\n", req)
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
