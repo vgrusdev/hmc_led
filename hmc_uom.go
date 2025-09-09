@@ -193,7 +193,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	/*
 		if !hmc.connected {
-			log.Infof("%s not cconnected. Trying to logon", myname)
+			log.Infof("%s not connected. Trying to logon", myname)
 			if err := hmc.Logon(ctx); err != nil {
 				return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 			}
@@ -229,8 +229,29 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	if resp.StatusCode == 200 {
 		return body, errBody
 	} else if resp.StatusCode == 204 {
-		return []byte{}, err
-	} else {
-		return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
+		return []byte{}, nil
+	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
+
+		log.Infof("%s not connected by responce. Trying to logon", myname)
+		if err := hmc.Logon(ctx); err == nil {
+			//resp.Body.Close()
+			resp, err := hmc.client.Do(req)
+			if err == nil {
+				defer resp.Body.Close()
+				body, errBody := io.ReadAll(resp.Body)
+
+				log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
+				//log.Debugf("Header:%v\n", resp.Header)
+				//log.Debugf("Body: %s\n", body)
+
+				if resp.StatusCode == 200 {
+					return body, errBody
+				} else if resp.StatusCode == 204 {
+					return []byte{}, nil
+				}
+			}
+		}
 	}
+
+	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
