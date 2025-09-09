@@ -291,6 +291,8 @@ func (hmc *HMC) GetInfoByUrl2(ctx context.Context, urlPath string, headers map[s
 	// Set headers
 	req.Header.Set("X-API-Session", hmc.token)
 	req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
+	req.Header.Set("Host", hmc.hmcHostname+":12443")
+	req.Header.Set("Accept", "*/*")
 	// Set custom headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
