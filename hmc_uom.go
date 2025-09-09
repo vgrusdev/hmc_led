@@ -222,14 +222,14 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	body, errBody := io.ReadAll(resp.Body)
 
 	log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
-	log.Debugf("Header:%v\n", resp.Header)
-	log.Debugf("Body: %s\n", body)
+	//log.Debugf("Header:%v\n", resp.Header)
+	//log.Debugf("Body: %s\n", body)
 
 	if resp.StatusCode == 200 {
 		return body, errBody
 	} else if resp.StatusCode == 204 {
 		return []byte{}, err
 	} else {
-		return []byte{}, fmt.Errorf("%s response status: %s, url: %s, errBody: %s, body:%s\n", myname, resp.Status, url, err, body)
+		return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 	}
 }
