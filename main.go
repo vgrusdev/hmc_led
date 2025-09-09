@@ -131,11 +131,11 @@ func run() {
 
 		ctxSrv, cancelSrv := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelSrv()
-		hmcLogoffCh := make(chan string)
+		hmcLogoffCh := make(chan error)
 		go hmc.Shutdown(ctxSrv, hmcLogoffCh)
 
 		// wait for srv.shutdown results
-		s, ok := <-hmcLogoffCh
+		e, ok := <-hmcLogoffCh
 		if ok == true {
 			slog.Info(s)
 		}
