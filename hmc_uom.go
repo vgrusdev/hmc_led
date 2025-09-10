@@ -93,7 +93,9 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	// Set headers
 	req.Header.Set("Content-Type", "application/vnd.ibm.powervm.web+xml; type=LogonRequest")
 	//req.Header.Set("Accept", "application/xml")
-	req.Header.Set("Connection", "keep-alive")
+	//req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Host", hmc.hmcHostname+":12443")
+	req.Header.Set("Accept", "*/*")
 
 	// Execute request
 	resp, err := hmc.client.Do(req)
@@ -147,6 +149,8 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 
 	// Set headers
 	req.Header.Set("X-API-Session", hmc.token)
+	req.Header.Set("Host", hmc.hmcHostname+":12443")
+	req.Header.Set("Accept", "*/*")
 
 	// Execute request
 	resp, err := hmc.client.Do(req)
@@ -193,19 +197,20 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
 
-	if !hmc.connected {
-		log.Infof("%s not connected. Trying to logon", myname)
-		if err := hmc.Logon(ctx); err != nil {
-			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+	/*
+		if !hmc.connected {
+			log.Infof("%s not connected. Trying to logon", myname)
+			if err := hmc.Logon(ctx); err != nil {
+				return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
+			}
 		}
-	}
-
-	//url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+	*/
+	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
 	//url := "https://" + hmc.hmcHostname + ":12443" + urlPath
-	url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
+	//url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 
-	//req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	//req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
 
 	if err != nil {
 		return []byte{}, fmt.Errorf("%s %w", myname, err)
@@ -244,9 +249,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 		if err := hmc.Logon(ctx); err == nil {
 			//resp.Body.Close()
 			req.Header.Set("X-API-Session", hmc.token)
-			req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
-			req.Header.Set("Host", hmc.hmcHostname+":12443")
-			req.Header.Set("Accept", "*/*")
+			//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
+			//req.Header.Set("Host", hmc.hmcHostname+":12443")
+			//req.Header.Set("Accept", "*/*")
 			resp, err := hmc.client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
