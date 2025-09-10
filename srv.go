@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	//"log/slog"
 	"net/http"
 	"sync"
@@ -31,7 +32,7 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/health", HealthCheck).Methods("GET")
-	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("POST") //
+	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET") //
 
 	s.ctx = ctx
 	s.hmc = hmc
