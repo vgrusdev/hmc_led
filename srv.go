@@ -84,13 +84,15 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	mgmtConsole, err := hmc.GetManagementConsole(ctx)
 	if err != nil {
 		log.Errorf("%s: %s", myname, err)
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.WriteHeader(http.StatusBadRequest)
 		str := []byte(`{"result": "error", "message":"` + fmt.Sprintf("%w", err) + `"}`)
 		w.Write(str)
 		respondWithJSON(w, http.StatusBadRequest, map[string]string{"result": "error", "message": "Invalid JSON Format"})
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	w.Write(mgmtConsole)
 }
