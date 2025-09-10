@@ -36,12 +36,12 @@ type HMC struct {
 	connected   bool
 }
 type ManagementConsole struct {
-	XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
-	ID        string   `xml:"entry>id"`
-	HMCType   string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>MachineType"`
-	HMCMod    string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
-	HMCSerial string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
-	HMCName   string   `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
+	//XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
+	ID        string `xml:"entry>id"`
+	HMCType   string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>MachineType"`
+	HMCMod    string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
+	HMCSerial string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
+	HMCName   string `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
 	//MgmsLinks []string `xml:"entry>content>ManagementConsole>ManagedSystems>link>href,attr"`
 }
 
