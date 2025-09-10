@@ -32,7 +32,9 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/health", HealthCheck).Methods("GET")
-	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET") //
+
+	router.HandleFunc("/getManagementConsole", s.getManagementConsole).Methods("GET") //
+	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET")     //
 
 	s.ctx = ctx
 	s.hmc = hmc
@@ -74,6 +76,29 @@ func (s *Srv) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 		log.Infoln("Srv shutdown OK")
 	}
 }
+func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
+
+	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
+	defer cancel()
+
+	myname := "quickManagedSystem"
+	hmc := s.hmc
+	mgmtConsole, err := hmc.GetManagementConsole(ctx)
+	if err != nil {
+		log.Errorf("%s: %s", myname, err)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.WriteHeader(http.StatusBadRequest)
+		str := []byte(`{"result": "error", "message":"` + fmt.Sprintf("%w", err) + `"}`)
+		w.Write(str)
+		respondWithJSON(w, http.StatusBadRequest, map[string]string{"result": "error", "message": "Invalid JSON Format"})
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(mgmtConsole)
+}
+
 func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
