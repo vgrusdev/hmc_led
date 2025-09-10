@@ -35,6 +35,15 @@ type HMC struct {
 	token       string
 	connected   bool
 }
+type ManagementConsole struct {
+	XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
+	ID        string   `xml:"entry>id"`
+	HMCType   string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>MachineType"`
+	HMCMod    string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
+	HMCSerial string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
+	HMCName   string   `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
+	MgmsLinks []string `xml:"entry>content>ManagementConsole>ManagedSystems>link>href,attr"`
+}
 
 func NewHMC(config *viper.Viper) *HMC {
 
@@ -287,3 +296,33 @@ func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
 	//return hmc.GetInfoByUrl(ctx, consoleURLPath, consoleHeader)
 	return readFileSafely("./mgms.xml")
 }
+func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsole, error) {
+
+	var mgmCons ManagementConsole
+
+	xmlData, err := hmc.GetManagementConsole(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = xml.Unmarshal(xmlData, &mgmCons)
+	if err != nil {
+		return nil, err
+	} else {
+		return &mgmCons, nil
+	}
+}
+
+/*
+func (hmc *HMC) getSystemLinks(mgmtConsole []byte) ([]string, error) {
+
+	var feed ManagementConsole
+
+	err := xml.Unmarshal(mgmtConsole, &feed)
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to unmarshal XML: %w", err)
+	} else {
+		return []string{}, nil
+	}
+}
+*/
