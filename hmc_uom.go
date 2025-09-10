@@ -263,3 +263,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	}
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
+func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
+	consoleURLPath := "/rest/api/uom/ManagementConsole"
+	consoleHeader := map[string]string{}
+
+	return hmc.GetInfoByUrl(ctx, consoleURLPath, consoleHeader)
+}
