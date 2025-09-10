@@ -33,8 +33,8 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 	router := mux.NewRouter()
 	router.HandleFunc("/health", HealthCheck).Methods("GET")
 
-	router.HandleFunc("/getManagementConsole", s.getManagementConsole).Methods("GET") //
-	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET")     //
+	router.HandleFunc("/getManagementConsole", s.getManagementConsole).Methods("GET", "POST") //
+	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET", "POST")     //
 
 	s.ctx = ctx
 	s.hmc = hmc
@@ -81,7 +81,7 @@ func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
 	defer cancel()
 
-	myname := "quickManagedSystem"
+	myname := "getManagementConsole"
 	hmc := s.hmc
 	mgmtConsole, err := hmc.GetManagementConsole(ctx)
 	if err != nil {

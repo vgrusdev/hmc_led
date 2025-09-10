@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	//"log/slog"
@@ -66,6 +67,22 @@ func NewHMC(config *viper.Viper) *HMC {
 	}
 
 	return &hmc
+}
+
+func readFileSafely(filename string) ([]byte, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		// Return empty slice instead of nil for consistency
+		return []byte{}, err
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return data, nil
 }
 
 func (hmc *HMC) Logon(ctx context.Context) error {
@@ -264,8 +281,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
-	consoleURLPath := "/rest/api/uom/ManagementConsole"
-	consoleHeader := map[string]string{}
+	//consoleURLPath := "/rest/api/uom/ManagementConsole"
+	//consoleHeader := map[string]string{}
 
-	return hmc.GetInfoByUrl(ctx, consoleURLPath, consoleHeader)
+	//return hmc.GetInfoByUrl(ctx, consoleURLPath, consoleHeader)
+	return readFileSafely("./mgms.xml")
 }
