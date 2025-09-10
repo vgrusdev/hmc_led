@@ -95,12 +95,12 @@ func run() {
 	//} else {
 	//	fmt.Printf("Response: %s", b)
 	//}
-	b, e := hmc.GetManagementConsole(ctx)
-	if e != nil {
-		log.Errorf("ERROR: %s", e)
-	} else {
-		fmt.Printf("Response: %s", b)
-	}
+	//b, e := hmc.GetManagementConsole(ctx)
+	//if e != nil {
+	//	log.Errorf("ERROR: %s", e)
+	//} else {
+	//	fmt.Printf("Response: %s", b)
+	//}
 
 	// Block until we receive our signal.
 	select { // which channel will be unblocked first ?
