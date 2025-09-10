@@ -197,17 +197,13 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
 
-	/*
-		if !hmc.connected {
-			log.Infof("%s not connected. Trying to logon", myname)
-			if err := hmc.Logon(ctx); err != nil {
-				return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
-			}
+	if !hmc.connected {
+		log.Infof("%s not connected. Trying to logon", myname)
+		if err := hmc.Logon(ctx); err != nil {
+			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
-	*/
+	}
 	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
-	//url := "https://" + hmc.hmcHostname + ":12443" + urlPath
-	//url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	//req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
@@ -218,14 +214,14 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 
 	// Set headers
 	req.Header.Set("X-API-Session", hmc.token)
-	req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
+	//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
 	req.Header.Set("Host", hmc.hmcHostname+":12443")
 	req.Header.Set("Accept", "*/*")
 	// Set custom headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	fmt.Printf("Request:%s\n", req)
+	//fmt.Printf("Request:%s\n", req)
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
@@ -247,19 +243,13 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 		// try to logon once again
 		log.Infof("%s not connected by responce. Trying to logon once again", myname)
 		if err := hmc.Logon(ctx); err == nil {
-			//resp.Body.Close()
 			req.Header.Set("X-API-Session", hmc.token)
-			//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
-			//req.Header.Set("Host", hmc.hmcHostname+":12443")
-			//req.Header.Set("Accept", "*/*")
 			resp, err := hmc.client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
 				body, errBody := io.ReadAll(resp.Body)
 
 				log.Debugf("%s status:%s, %d", myname, resp.Status, resp.StatusCode)
-				//log.Debugf("Header:%v\n", resp.Header)
-				//log.Debugf("Body: %s\n", body)
 
 				if resp.StatusCode == 200 {
 					return body, errBody
@@ -271,6 +261,5 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 			}
 		}
 	}
-
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
