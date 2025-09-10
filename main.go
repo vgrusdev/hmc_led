@@ -89,7 +89,13 @@ func run() {
 	// run srv.ListenAndServe()
 	go srv.Run(chSrv)
 
-	b, e := hmc.GetInfoByUrl(ctx, "/rest/api/uom/ManagementConsole", map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"})
+	//b, e := hmc.GetInfoByUrl(ctx, "/rest/api/uom/ManagementConsole", map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"})
+	//if e != nil {
+	//	log.Errorf("ERROR: %s", e)
+	//} else {
+	//	fmt.Printf("Response: %s", b)
+	//}
+	b, e := hmc.GetManagementConsole(ctx)
 	if e != nil {
 		log.Errorf("ERROR: %s", e)
 	} else {
