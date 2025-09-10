@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	//"log/slog"
 	"net/http"
@@ -101,6 +102,25 @@ func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 
 func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
+	type QuickMgms struct {
+		UUID      string `json:"uuid"`
+		MTMS      string `json:"mtms"`
+		SysName   string `json:"systemname"`
+		State     string `json:"state"`
+		LED       string `json:"led"`
+		RefCode   string `json:"rfc"`
+		Timestamp int64  `json:"timestamp"`
+		Elapsed   int64  `json:"elapsed"`
+	}
+	type RespJson struct {
+		HMC       string      `json:"hmc"`
+		HMCmtms   string      `json:"hmc_mtms"`
+		HMCuuid   string      `json:"hmc_uuid"`
+		Timestamp int64       `json:"timestamp"`
+		Elapsed   int64       `json:"elapsed"`
+		Systems   []QuickMgms `json:"system"`
+	}
+
 	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
 	defer cancel()
 
@@ -110,5 +130,55 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("%s err=%s", myname, err)
 	}
-	fmt.Printf("mgmConsole: %s\n", mgmConsole)
+
+	totServers := len(mgmConsole.Links)
+
+	respJson := RespJson{}
+
+	respJson.HMC = hmc.hmcName
+	respJson.HMCmtms = mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial
+	respJson.HMCuuid = mgmConsole.ID
+	respJson.Timestamp = time.Now().Unix()
+	respJson.Elapsed = 0
+	respJson.Systems = []QuickMgms{}
+
+	var system QuickMgms
+
+	for num, elem := range mgmConsole.Links {
+
+		mgmsURL := elem.Href
+		a := strings.Split(mgmsURL, "/")
+		system.UUID = a[len(a)-1]
+
+		jsonData, err := hmc.GetMgmsQuick(ctx, mgmsURL)
+		if err != nil {
+			log.Errorf("%s err=%s", myname, err)
+			continue
+		}
+		var mapData map[string]interface{}
+		err = json.Unmarshal([]byte(jsonData), &mapData)
+		if err != nil {
+			log.Errorf("%s unmarshal error: %s", myname, err)
+			continue
+		}
+		system.MTMS = mapData["MTMS"].(string)
+		system.SysName = mapData["SystemName"].(string)
+		system.State = mapData["State"].(string)
+		system.LED = mapData["PhysicalSystemAttentionLEDState"].(string)
+		system.RefCode = mapData["ReferenceCode"].(string)
+		system.Timestamp = time.Now().Unix()
+		system.Elapsed = 0
+
+		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.SysName)
+
+		respJson.Systems = append(respJson.Systems, system)
+
+	}
+
+	jsonData, _ := json.MarshalIndent(respJson, "", "  ")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonData)
+
 }

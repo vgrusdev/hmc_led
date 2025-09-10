@@ -220,11 +220,11 @@ func (hmc *HMC) CloseIdleConnections() {
 	hmc.client.CloseIdleConnections()
 }
 
-func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[string]string) ([]byte, error) {
+func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string]string) ([]byte, error) {
 
 	myname := "hmc.getInfoByUrl"
 
-	log.Debugf("%s urlPath=%s, header=%s", myname, urlPath, headers)
+	log.Debugf("%s url=%s, header=%s", myname, url, headers)
 
 	if !hmc.connected {
 		log.Infof("%s not connected. Trying to logon", myname)
@@ -232,7 +232,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
 	}
-	url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
+	//url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	//req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
@@ -293,10 +293,10 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, urlPath string, headers map[st
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
-	//consoleURLPath := "/rest/api/uom/ManagementConsole"
+	//consoleURL := url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 	//consoleHeader := map[string]string{}
 
-	//return hmc.GetInfoByUrl(ctx, consoleURLPath, consoleHeader)
+	//return hmc.GetInfoByUrl(ctx, consoleURL, consoleHeader)
 	return readFileSafely("./mgms.xml")
 }
 func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsole, error) {
@@ -314,6 +314,11 @@ func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsol
 	} else {
 		return &mgmCons, nil
 	}
+}
+func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsURL string) ([]byte, error) {
+	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
+
+	return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
 }
 
 /*

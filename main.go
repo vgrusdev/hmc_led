@@ -72,14 +72,6 @@ func run() {
 	hmc := NewHMC(globalConfig)
 	defer hmc.CloseIdleConnections()
 
-	//if err := hmc.Logon(ctx); err != nil {
-	//	log.Errorf("Logon error %s", err)
-	//}
-	//time.Sleep(1 * time.Second)
-	//if err := hmc.Logon(ctx); err != nil {
-	//	log.Errorf("Logon error %s", err)
-	//}
-
 	// Init http server
 	srv := Srv{}
 	srv.SrvInit(ctx, globalConfig, hmc)
@@ -88,19 +80,6 @@ func run() {
 	chSrv := make(chan error)
 	// run srv.ListenAndServe()
 	go srv.Run(chSrv)
-
-	//b, e := hmc.GetInfoByUrl(ctx, "/rest/api/uom/ManagementConsole", map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"})
-	//if e != nil {
-	//	log.Errorf("ERROR: %s", e)
-	//} else {
-	//	fmt.Printf("Response: %s", b)
-	//}
-	//b, e := hmc.GetManagementConsole(ctx)
-	//if e != nil {
-	//	log.Errorf("ERROR: %s", e)
-	//} else {
-	//	fmt.Printf("Response: %s", b)
-	//}
 
 	// Block until we receive our signal.
 	select { // which channel will be unblocked first ?
