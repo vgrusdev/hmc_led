@@ -42,7 +42,7 @@ type ManagementConsole struct {
 	HMCMod    string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
 	HMCSerial string   `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
 	HMCName   string   `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
-	MgmsLinks []string `xml:"entry>content>ManagementConsole>ManagedSystems>link>href,attr"`
+	//MgmsLinks []string `xml:"entry>content>ManagementConsole>ManagedSystems>link>href,attr"`
 }
 
 func NewHMC(config *viper.Viper) *HMC {
