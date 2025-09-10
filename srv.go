@@ -118,7 +118,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		HMCuuid   string      `json:"hmc_uuid"`
 		Timestamp int64       `json:"timestamp"`
 		Elapsed   int64       `json:"elapsed"`
-		Systems   []QuickMgms `json:"system"`
+		Systems   []QuickMgms `json:"systems"`
 	}
 
 	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
