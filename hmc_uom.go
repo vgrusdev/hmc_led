@@ -37,12 +37,15 @@ type HMC struct {
 }
 type ManagementConsole struct {
 	//XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
-	ID        string `xml:"entry>id"`
-	HMCType   string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>MachineType"`
-	HMCMod    string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
-	HMCSerial string `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
-	HMCName   string `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
-	//MgmsLinks []string `xml:"entry>content>ManagementConsole>ManagedSystems>link>href,attr"`
+	ID        string     `xml:"entry>id"`
+	HMCType   string     `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>MachineType"`
+	HMCMod    string     `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>Model"`
+	HMCSerial string     `xml:"entry>content>ManagementConsole>MachineTypeModelAndSerialNumber>SerialNumber"`
+	HMCName   string     `xml:"entry>content>ManagementConsole>ManagementConsoleName"`
+	Links     []SysLinks `xml:"entry>content>ManagementConsole>ManagedSystems>link"`
+}
+type SysLinks struct {
+	Href string `xml:"href,attr"`
 }
 
 func NewHMC(config *viper.Viper) *HMC {
