@@ -316,9 +316,10 @@ func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsol
 	}
 }
 func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsURL string) ([]byte, error) {
-	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
+	//mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
 
-	return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
+	//return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
+	return readFileSafely("./mgms-quick.xml")
 }
 
 /*
