@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"time"
 
 	//"log/slog"
 	"net/http"
@@ -47,10 +48,10 @@ func NewHMC(config *viper.Viper) *HMC {
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: tls_skip_verify, // HMC appears not to have a genuine recognised CA certficate
 		},
-		//MaxIdleConns:        1,
-		//MaxIdleConnsPerHost: 1,
-		//IdleConnTimeout:     60 * time.Second,
-		//DisableKeepAlives:   false, // Explicitly enable keep-alive
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		IdleConnTimeout:     60 * time.Second,
+		DisableKeepAlives:   false, // Explicitly enable keep-alive
 	}
 
 	hmc := HMC{
@@ -59,10 +60,9 @@ func NewHMC(config *viper.Viper) *HMC {
 		},
 		hmcName:     config.GetString("hmc_name"),
 		hmcHostname: config.GetString("hmc_hostname"),
-		//baseURL:	"https://" + hmcHostname + ":12443/rest/api"
-		user:      config.GetString("hmc_user"),
-		passwd:    config.GetString("hmc_passwd"),
-		connected: false,
+		user:        config.GetString("hmc_user"),
+		passwd:      config.GetString("hmc_passwd"),
+		connected:   false,
 	}
 
 	return &hmc
