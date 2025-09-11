@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -32,6 +33,7 @@ func NewAuthMiddleware(config *viper.Viper) *AuthMiddleware {
 		username: user,
 		password: passwd,
 	}
+	log.Infof("Srv basic auth setup. realm: %s", realm)
 	return auth
 }
 
@@ -78,5 +80,6 @@ func (a *AuthMiddleware) authenticate(r *http.Request) bool {
 // askForCredentials prompts for authentication
 func (a *AuthMiddleware) askForCredentials(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, a.realm))
+	log.Warnln("Srv Unauthorized request.")
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 }
