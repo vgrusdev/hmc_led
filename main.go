@@ -131,6 +131,7 @@ func showHelp() {
 	fmt.Fprintln(os.Stderr, "  GET /status               - Some statistics (public)")
 	fmt.Fprintln(os.Stderr, "  GET /getManagementConsole - raw XML /rest/api/uom/ManagementConsole")
 	fmt.Fprintln(os.Stderr, "  GET /quickManagedSystem   - YAML - servers LED status")
+	fmt.Fprintln(os.Stderr, "")
 	os.Exit(0)
 }
 
