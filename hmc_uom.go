@@ -318,8 +318,9 @@ func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsol
 		return &mgmCons, nil
 	}
 }
-func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsURL string) ([]byte, error) {
+func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsUUID string) ([]byte, error) {
 	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
+	mgmsURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagedSystem/" + mgmsUUID + "/quick"
 	return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
 
 	// Use read from file for development/debugging purposes in case real HMC is not reachable

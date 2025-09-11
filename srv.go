@@ -145,11 +145,10 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 		log.Debugf("%s NUM=%d", myname, num)
 
-		mgmsURL := elem.Href
-		a := strings.Split(mgmsURL, "/")
+		a := strings.Split(elem.Href, "/")
 		system.UUID = a[len(a)-1]
 
-		jsonData, err := hmc.GetMgmsQuick(ctx, mgmsURL)
+		jsonData, err := hmc.GetMgmsQuick(ctx, system.UUID)
 		if err != nil {
 			log.Errorf("%s. GetMgmsQuick err=%s", myname, err)
 			continue
