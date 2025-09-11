@@ -46,7 +46,7 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		if !a.authenticate(r) {
-			log.Warnln("Srv Unauthorized request from %s", r.RemoteAddr)
+			log.Warnf("Srv Unauthorized request from %s", r.RemoteAddr)
 			a.askForCredentials(w)
 			return
 		}
