@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"strings"
 
 	//"log/slog"
@@ -57,6 +58,29 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, map[string]string{"Server_status": "OK"})
+}
+
+func getClientIP(r *http.Request) string {
+	// Try various headers that might contain the real client IP
+	headers := []string{
+		"X-Real-Ip",
+		"X-Forwarded-For",
+		"X-Client-Ip",
+		"CF-Connecting-IP", // Cloudflare
+	}
+
+	for _, header := range headers {
+		if ip := r.Header.Get(header); ip != "" {
+			return ip
+		}
+	}
+
+	// Fallback to RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
 }
 
 func (s *Srv) status(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +183,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	myname := "quickManagedSystem"
 	hmc := s.hmc
-	log.Infof("%s hmc=%s", myname, hmc.hmcName)
+	log.Infof("%s, hmc: %s, connection from: ", myname, hmc.hmcName, getClientIP(r))
 
 	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 	if err != nil {
