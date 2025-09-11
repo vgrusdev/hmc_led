@@ -46,6 +46,7 @@ func (a *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		if !a.authenticate(r) {
+			log.Warnln("Srv Unauthorized request from %s", r.RemoteAddr)
 			a.askForCredentials(w)
 			return
 		}
@@ -80,6 +81,5 @@ func (a *AuthMiddleware) authenticate(r *http.Request) bool {
 // askForCredentials prompts for authentication
 func (a *AuthMiddleware) askForCredentials(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, a.realm))
-	log.Warnln("Srv Unauthorized request.")
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 }
