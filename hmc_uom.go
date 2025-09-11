@@ -282,7 +282,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
 		// Not authorised - not logged on
 		// try to logon once again
-		log.Infof("%s not connected to HMC by responce. Trying to Logon once again", myname)
+		log.Infof("%s not connected to HMC by response. Trying to Logoff/Logon once again", myname)
+		_ = hmc.Logoff(ctx)
+		hmc.connected = false
 		if err := hmc.Logon(ctx); err == nil {
 			// New token from new Logon and repeat the request
 			req.Header.Set("X-API-Session", hmc.token)
