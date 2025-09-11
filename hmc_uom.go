@@ -291,11 +291,11 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 			}
 		}
 	}
-	// finally was not able to process the request 
+	// finally was not able to process the request
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
-	consoleURL := url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
+	consoleURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 	consoleHeader := map[string]string{}
 	return hmc.GetInfoByUrl(ctx, consoleURL, consoleHeader)
 
