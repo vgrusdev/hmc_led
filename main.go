@@ -62,7 +62,7 @@ func run() {
 		log.Fatalf("Could not initialize config: %s", err)
 	}
 
-	log.Infoln("Program start.")
+	log.Debugln("Program start.")
 
 	// Handle graceful shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

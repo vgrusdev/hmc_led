@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	//"log/slog"
@@ -54,7 +53,8 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 	w.Write(response)
 }
@@ -74,12 +74,12 @@ func (s *Srv) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 	if err := s.srv.Shutdown(ctx); err != nil {
 		log.Warnf("Srv shutdown: %s", err)
 	} else {
-		log.Infoln("Srv shutdown OK")
+		log.Infoln("Srv shutdown: OK")
 	}
 }
 func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
 	defer cancel()
 
 	myname := "getManagementConsole"
@@ -87,12 +87,7 @@ func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 	mgmtConsole, err := hmc.GetManagementConsole(ctx)
 	if err != nil {
 		log.Errorf("%s: %s", myname, err)
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.WriteHeader(http.StatusBadRequest)
-		str := []byte(`{"result": "error", "message":"` + fmt.Sprintf("%w", err) + `"}`)
-		w.Write(str)
-		respondWithJSON(w, http.StatusBadRequest, map[string]string{"result": "error", "message": "Invalid JSON Format"})
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsole error"})
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -128,7 +123,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	hmc := s.hmc
 	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 	if err != nil {
-		log.Errorf("%s err=%s", myname, err)
+		log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsoleData error"})
+		return
 	}
 
 	totServers := len(mgmConsole.Links)
@@ -152,13 +149,13 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 		jsonData, err := hmc.GetMgmsQuick(ctx, mgmsURL)
 		if err != nil {
-			log.Errorf("%s err=%s", myname, err)
+			log.Errorf("%s. GetMgmsQuick err=%s", myname, err)
 			continue
 		}
 		var mapData map[string]interface{}
 		err = json.Unmarshal([]byte(jsonData), &mapData)
 		if err != nil {
-			log.Errorf("%s unmarshal error: %s", myname, err)
+			log.Errorf("%s. unmarshal error: %s", myname, err)
 			continue
 		}
 		system.MTMS = mapData["MTMS"].(string)

@@ -81,6 +81,7 @@ func NewHMC(config *viper.Viper) *HMC {
 	return &hmc
 }
 
+// for debugging, when real HMC is not reachable
 func readFileSafely(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -93,19 +94,20 @@ func readFileSafely(filename string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, err
 	}
-
 	return data, nil
 }
 
 func (hmc *HMC) Logon(ctx context.Context) error {
 
 	if hmc.connected {
-		//log.Errorln("Attempting to login when connected")
+		log.Errorln("HMC Logon. Attempting to logon when already connected !")
 		return fmt.Errorf("Attempting to logon when already connected")
+		//return nil
 	}
 
+	// reset connection status
 	hmc.token = ""
-	hmc.connected = false
+	//hmc.connected = false
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
@@ -113,10 +115,10 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 		"<UserID>" + hmc.user + "</UserID><Password>" + hmc.passwd + "</Password></LogonRequest>"
 
 	//log.Debugf("hmc.Logon: url: %s\npayload: %s", url, payload)
-	// Create request
+	// Create request with context. Suppose ctx - context with timeout...
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, strings.NewReader(payload))
 	if err != nil {
-		return err
+		return fmt.Errorf("HMC Logon Request. %w", err)
 	}
 
 	// Set headers
@@ -129,17 +131,17 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("HMC Logon Do. %w", err)
 	}
 	defer resp.Body.Close()
 
 	//log.Debugln("Logon:")
-	log.Infof("Logon status:%s, %d", resp.Status, resp.StatusCode)
+	log.Infof("HMC %s Logon status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Logon Header:%v\n", resp.Header)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("HMC Logon Body %w", err)
 	}
 
 	if resp.StatusCode != 200 {
@@ -155,7 +157,7 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	if err := xml.Unmarshal([]byte(body), &response); err != nil {
 		return fmt.Errorf("Logon failed to parse XML: %w", err)
 	}
-	log.Debugf("Token: %s\n", response.Token)
+	log.Debugf("Token: %s", response.Token)
 
 	hmc.token = response.Token
 	hmc.connected = true
@@ -165,15 +167,17 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 func (hmc *HMC) Logoff(ctx context.Context) error {
 
 	if !hmc.connected {
-		//slog.Error("Attempting to login when connected")
+		log.Errorln("HMC Logoff. Attempting to logoff when connected")
 		return fmt.Errorf("Attempting to logoff when not connected")
+		//return nil
 	}
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
-	// Create request
+
+	// Create request with context. Suppose ctx - context with timeout...
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("HMC Logoff request. %w", err)
 	}
 
 	// Set headers
@@ -184,11 +188,11 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("HMC Logoff do, %w", err)
 	}
 	defer resp.Body.Close()
 
-	log.Infof("Logoff status:%s, %d", resp.Status, resp.StatusCode)
+	log.Infof("Logoff %s status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Header:%v\n", resp.Header)
 
 	body, _ := io.ReadAll(resp.Body)
@@ -232,10 +236,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
 	}
-	//url := fmt.Sprintf("https://%s:12443%s", hmc.hmcHostname, urlPath) // urlPath - absolute path starting with /
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	//req, err := http.NewRequestWithContext(ctx, "GET", url, strings.NewReader(""))
 
 	if err != nil {
 		return []byte{}, fmt.Errorf("%s %w", myname, err)
@@ -250,11 +251,10 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
-	//fmt.Printf("Request:%s\n", req)
 	// Execute request
 	resp, err := hmc.client.Do(req)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("%s %w", myname, err)
 	}
 	defer resp.Body.Close()
 	body, errBody := io.ReadAll(resp.Body)
@@ -268,10 +268,11 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	} else if resp.StatusCode == 204 {
 		return []byte{}, nil
 	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
-
+		// Not authorised - not logged on
 		// try to logon once again
-		log.Infof("%s not connected by responce. Trying to logon once again", myname)
+		log.Infof("%s not connected to HMC by responce. Trying to Logon once again", myname)
 		if err := hmc.Logon(ctx); err == nil {
+			// New token from new Logon and repeat the request
 			req.Header.Set("X-API-Session", hmc.token)
 			resp, err := hmc.client.Do(req)
 			if err == nil {
@@ -290,36 +291,39 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 			}
 		}
 	}
+	// finally was not able to process the request 
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
-	//consoleURL := url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
-	//consoleHeader := map[string]string{}
+	consoleURL := url := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
+	consoleHeader := map[string]string{}
+	return hmc.GetInfoByUrl(ctx, consoleURL, consoleHeader)
 
-	//return hmc.GetInfoByUrl(ctx, consoleURL, consoleHeader)
-	return readFileSafely("./mgms.xml")
+	// Use read from file for development/debugging purposes in case real HMC is not reachable
+	//return readFileSafely("./mgms.xml")
 }
 func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsole, error) {
 
 	var mgmCons ManagementConsole
+	myname := "GemManagementConsoleData"
 
 	xmlData, err := hmc.GetManagementConsole(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s %s", myname, err)
 	}
-
 	err = xml.Unmarshal(xmlData, &mgmCons)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s %s", myname, err)
 	} else {
 		return &mgmCons, nil
 	}
 }
 func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsURL string) ([]byte, error) {
-	//mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
+	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
+	return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
 
-	//return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
-	return readFileSafely("./mgms-quick.xml")
+	// Use read from file for development/debugging purposes in case real HMC is not reachable
+	//return readFileSafely("./mgms-quick.xml")
 }
 
 /*
