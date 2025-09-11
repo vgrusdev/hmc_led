@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	//"log/slog"
@@ -31,7 +32,7 @@ type Srv struct {
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
 	router := mux.NewRouter()
-	router.HandleFunc("/health", HealthCheck).Methods("GET")
+	router.HandleFunc("/health", s.HealthCheck).Methods("GET")
 
 	router.HandleFunc("/getManagementConsole", s.getManagementConsole).Methods("GET", "POST") //
 	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET", "POST")     //
@@ -44,10 +45,32 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	defer cancel()
+
+	err := hmc.Logon(ctx)
+	if err != nil {
+		log.Errorf("Serv init. No connection to HMC. %s", err)
+	}
 }
 
-func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	respondWithJSON(w, http.StatusOK, map[string]string{"result": "success"})
+func (s *Srv) HealthCheck(w http.ResponseWriter, r *http.Request) {
+
+	resp := map[string]string{"Server_status": "OK"}
+	hmc := s.hmc
+
+	if hmc.connected {
+		resp["HMC_status"] = "Connected"
+	} else {
+		resp["HMC_status"] = "Disconnected"
+	}
+	resp["logon_requests"] = fmt.Sprintf("%d", hmc.logon_requests)
+	resp["url_requests"] = fmt.Sprintf("%d", hmc.url_requests)
+	resp["mgmconsole_requests"] = fmt.Sprintf("%d", hmc.mgmconsole_requests)
+	resp["quick_mgms_requests"] = fmt.Sprintf("%d", hmc.quick_mgms_requests)
+
+	respondWithJSON(w, http.StatusOK, resp)
 }
 
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {

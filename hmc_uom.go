@@ -25,15 +25,19 @@ import (
 )
 
 type HMC struct {
-	client      *http.Client
-	hmcName     string
-	hmcHostname string
-	hmcUuid     string
-	baseURL     string
-	user        string
-	passwd      string
-	token       string
-	connected   bool
+	client              *http.Client
+	hmcName             string
+	hmcHostname         string
+	hmcUuid             string
+	baseURL             string
+	user                string
+	passwd              string
+	token               string
+	connected           bool
+	logon_requests      int64
+	url_requests        int64
+	mgmconsole_requests int64
+	quick_mgms_requests int64
 }
 type ManagementConsole struct {
 	//XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
@@ -78,6 +82,11 @@ func NewHMC(config *viper.Viper) *HMC {
 		connected:   false,
 	}
 
+	hmc.logon_requests = 0
+	hmc.url_requests = 0
+	hmc.mgmconsole_requests = 0
+	hmc.quick_mgms_requests = 0
+
 	return &hmc
 }
 
@@ -98,6 +107,8 @@ func readFileSafely(filename string) ([]byte, error) {
 }
 
 func (hmc *HMC) Logon(ctx context.Context) error {
+
+	hmc.logon_requests++
 
 	if hmc.connected {
 		log.Errorln("HMC Logon. Attempting to logon when already connected !")
@@ -229,6 +240,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	myname := "hmc.getInfoByUrl"
 
 	log.Debugf("%s url=%s", myname, url)
+	hmc.url_requests++
 
 	if !hmc.connected {
 		log.Infof("%s not connected. Trying to logon", myname)
@@ -295,6 +307,9 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	return []byte{}, fmt.Errorf("%s response status: %s, url: %s", myname, resp.Status, url)
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
+
+	hmc.mgmconsole_requests++
+
 	consoleURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 	consoleHeader := map[string]string{}
 	return hmc.GetInfoByUrl(ctx, consoleURL, consoleHeader)
@@ -319,6 +334,9 @@ func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsol
 	}
 }
 func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsUUID string) ([]byte, error) {
+
+	hmc.quick_mgms_requests++
+
 	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
 	mgmsURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagedSystem/" + mgmsUUID + "/quick"
 	return hmc.GetInfoByUrl(ctx, mgmsURL, mgmsHeader)
