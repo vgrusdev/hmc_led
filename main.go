@@ -125,6 +125,12 @@ func run() {
 
 func showHelp() {
 	flag.Usage()
+	fmt.Println("")
+	fmt.Println("Endpoints:")
+	fmt.Println("  GET /health               - Health check (public)")
+	fmt.Println("  GET /status               - Some statistics (public)")
+	fmt.Println("  GET /getManagementConsole - raw XML /rest/api/uom/ManagementConsole")
+	fmt.Println("  GET /quickManagedSystem   - YAML - servers LED status")
 	os.Exit(0)
 }
 

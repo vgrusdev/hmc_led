@@ -206,14 +206,15 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	log.Debugf("Logoff %s status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Header:%v\n", resp.Header)
 
+	hmc.token = ""
+	hmc.connected = false
+
 	body, _ := io.ReadAll(resp.Body)
 	log.Debugf("Logoff Body: %s", body)
 
 	if resp.StatusCode != 200 && resp.StatusCode != 202 && resp.StatusCode != 204 {
 		return fmt.Errorf("Logoff failed error code: %s, url: %s", resp.Status, url)
 	}
-	hmc.token = ""
-	hmc.connected = false
 	return nil
 }
 
@@ -284,7 +285,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 		// try to logon once again
 		log.Infof("%s not connected to HMC by response. Trying to Logoff/Logon once again", myname)
 		_ = hmc.Logoff(ctx)
-		hmc.connected = false
+		//hmc.connected = false
 		if err := hmc.Logon(ctx); err == nil {
 			// New token from new Logon and repeat the request
 			req.Header.Set("X-API-Session", hmc.token)
