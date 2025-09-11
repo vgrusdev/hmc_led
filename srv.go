@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	//"log/slog"
@@ -32,8 +31,8 @@ type Srv struct {
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
 	router := mux.NewRouter()
-	router.HandleFunc("/health", s.HealthCheck).Methods("GET")
-
+	router.HandleFunc("/health", healthCheck).Methods("GET")
+	router.HandleFunc("/status", s.status).Methods("GET")
 	router.HandleFunc("/getManagementConsole", s.getManagementConsole).Methods("GET", "POST") //
 	router.HandleFunc("/quickManagedSystem", s.quickManagedSystem).Methods("GET", "POST")     //
 
@@ -46,7 +45,7 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, 15*time.Second)
 	defer cancel()
 
 	err := hmc.Logon(ctx)
@@ -55,24 +54,38 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 	}
 }
 
-func (s *Srv) HealthCheck(w http.ResponseWriter, r *http.Request) {
+func healthCheck(w http.ResponseWriter, r *http.Request) {
 
-	resp := map[string]string{"Server_status": "OK"}
-	hmc := s.hmc
-
-	if hmc.connected {
-		resp["HMC_status"] = "Connected"
-	} else {
-		resp["HMC_status"] = "Disconnected"
-	}
-	resp["logon_requests"] = fmt.Sprintf("%d", hmc.logon_requests)
-	resp["url_requests"] = fmt.Sprintf("%d", hmc.url_requests)
-	resp["mgmconsole_requests"] = fmt.Sprintf("%d", hmc.mgmconsole_requests)
-	resp["quick_mgms_requests"] = fmt.Sprintf("%d", hmc.quick_mgms_requests)
-
-	respondWithJSON(w, http.StatusOK, resp)
+	respondWithJSON(w, http.StatusOK, map[string]string{"Server_status": "OK"})
 }
 
+func (s *Srv) status(w http.ResponseWriter, r *http.Request) {
+
+	type Response struct {
+		Srv                string `json:"server_status"`
+		HMC                string `json:"hmc_connection"`
+		LogonRequests      int64  `json:"logon_requests"`
+		URLRequests        int64  `json:"url_requests"`
+		MgmConsoleRequests int64  `json:"mgmconsole_requests"`
+		QuickMgmsRequests  int64  `json:"quick_mgms_requests"`
+	}
+	hmc := s.hmc
+
+	resp := Response{
+		Srv:                "OK",
+		HMC:                "",
+		LogonRequests:      hmc.logon_requests,
+		URLRequests:        hmc.url_requests,
+		MgmConsoleRequests: hmc.mgmconsole_requests,
+		QuickMgmsRequests:  hmc.quick_mgms_requests,
+	}
+	if hmc.connected {
+		resp.HMC = "Connected"
+	} else {
+		resp.HMC = "Disconnected"
+	}
+	respondWithJSON(w, http.StatusOK, resp)
+}
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	response, _ := json.Marshal(payload)
 
@@ -141,7 +154,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	globalStart := time.Now()
 
-	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(s.ctx, 60*time.Second)
 	defer cancel()
 
 	myname := "quickManagedSystem"
