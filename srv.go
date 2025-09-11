@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net"
 	"strings"
@@ -24,9 +25,12 @@ import (
 
 type Srv struct {
 	//router 	*mux.Router
-	srv *http.Server
-	hmc *HMC
-	ctx context.Context
+	srv     *http.Server
+	hmc     *HMC
+	ctx     context.Context
+	tls     bool
+	certKEY string
+	certCRT string
 }
 
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
@@ -44,7 +48,33 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		Addr:         config.GetString("srv_addr") + ":" + config.GetString("srv_port"),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
+	if strings.ToLower(config.GetString("server_use_TLS")) == "yes" {
+		s.tls = true
+		// Configure TLS
+		tlsConfig := &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			PreferServerCipherSuites: true,
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256,
+				tls.X25519,
+			},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+		}
+		s.srv.TLSConfig = tlsConfig
+	} else {
+		s.tls = false
+	}
+	s.certKEY = config.GetString("server_key")
+	s.certCRT = config.GetString("server_crt")
 
 	ctx, cancel := context.WithTimeout(s.ctx, 15*time.Second)
 	defer cancel()
@@ -55,8 +85,30 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 	}
 }
 
-func healthCheck(w http.ResponseWriter, r *http.Request) {
+func (s *Srv) Run(c chan error) {
+	if s.tls {
+		log.Infof("Srv Running secure HTTPS. Listening: %s", s.srv.Addr)
+		c <- s.srv.ListenAndServeTLS(s.certCRT, s.certKEY)
+	} else {
+		log.Infof("Srv Running. Listening: %s", s.srv.Addr)
+		c <- s.srv.ListenAndServe()
+	}
+	close(c)
+}
 
+func (s *Srv) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
+
+	defer wg.Done()
+
+	log.Infoln("Srv shutting down..")
+	if err := s.srv.Shutdown(ctx); err != nil {
+		log.Warnf("Srv shutdown: %s", err)
+	} else {
+		log.Infoln("Srv shutdown: OK")
+	}
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, map[string]string{"Server_status": "OK"})
 }
 
@@ -119,24 +171,6 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
-func (s *Srv) Run(c chan error) {
-	log.Infof("Srv Running. Listening: %s", s.srv.Addr)
-
-	c <- s.srv.ListenAndServe()
-	close(c)
-}
-
-func (s *Srv) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
-
-	defer wg.Done()
-
-	log.Infoln("Srv shutting down..")
-	if err := s.srv.Shutdown(ctx); err != nil {
-		log.Warnf("Srv shutdown: %s", err)
-	} else {
-		log.Infoln("Srv shutdown: OK")
-	}
-}
 func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(s.ctx, 30*time.Second)
@@ -183,7 +217,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	myname := "quickManagedSystem"
 	hmc := s.hmc
-	log.Infof("%s, hmc: %s, connection from: ", myname, hmc.hmcName, getClientIP(r))
+	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, getClientIP(r))
 
 	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 	if err != nil {

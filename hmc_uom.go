@@ -203,7 +203,7 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	log.Infof("Logoff %s status:%s", hmc.hmcName, resp.Status)
+	log.Debugf("Logoff %s status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Header:%v\n", resp.Header)
 
 	body, _ := io.ReadAll(resp.Body)
@@ -223,9 +223,9 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 
 	log.Infoln("HMC shutting down..")
 	if err := hmc.Logoff(ctx); err != nil {
-		log.Warnf("HMC shutdown: %s", err)
+		log.Warnf("HMC Logoff: %s", err)
 	} else {
-		log.Infoln("HMC shutdown OK")
+		log.Infoln("HMC Logoff OK")
 	}
 }
 
