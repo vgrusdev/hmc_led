@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 
@@ -159,6 +160,21 @@ func getClientIP(r *http.Request) string {
 	return ip
 }
 
+func tlsVersionToString(version uint16) string {
+	switch version {
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	default:
+		return fmt.Sprintf("Unknown (%x)", version)
+	}
+}
+
 func (s *Srv) status(w http.ResponseWriter, r *http.Request) {
 
 	type Response struct {
@@ -241,7 +257,12 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	myname := "quickManagedSystem"
 	hmc := s.hmc
-	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, getClientIP(r))
+
+	ip_tls := getClientIP(r)
+	if s.tls {
+		ip_tls = fmt.Sprintf("%s (%s)", ip_tls, tlsVersionToString(r.TLS.Version))
+	}
+	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, ip_tls)
 
 	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 	if err != nil {
