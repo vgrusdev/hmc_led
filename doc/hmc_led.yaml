@@ -13,7 +13,11 @@ server_use_TLS:  "yes"
 #   openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
 server_key: "server.key"
 server_crt: "server.crt"
-
+# If TLS is used, basic auth user/password can be set.
+server_auth_realm: "hmc_led"
+server_user: "user"
+server_passwd: "passwd"
+#
 # The log level.
 #
 # Possible values, from less to most verbose: error, warn, info, debug.
