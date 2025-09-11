@@ -228,7 +228,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 
 	myname := "hmc.getInfoByUrl"
 
-	log.Debugf("%s url=%s, header=%s", myname, url, headers)
+	log.Debugf("%s url=%s", myname, url)
 
 	if !hmc.connected {
 		log.Infof("%s not connected. Trying to logon", myname)

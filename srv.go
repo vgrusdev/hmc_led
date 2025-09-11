@@ -116,11 +116,15 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		Systems   []QuickMgms `json:"systems"`
 	}
 
+	globalStart := time.Now()
+
 	ctx, cancel := context.WithTimeout(s.ctx, 120*time.Second)
 	defer cancel()
 
 	myname := "quickManagedSystem"
 	hmc := s.hmc
+	log.Infof("%s hmc=%s", myname, hmc.hmcName)
+
 	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 	if err != nil {
 		log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
@@ -143,7 +147,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	for num, elem := range mgmConsole.Links {
 
-		log.Debugf("%s NUM=%d", myname, num)
+		serverStart := time.Now()
 
 		a := strings.Split(elem.Href, "/")
 		system.UUID = a[len(a)-1]
@@ -160,7 +164,8 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		var value interface{}
-		exists := true
+		var exists bool
+		var str string
 
 		if value, exists = mapData["MTMS"]; exists {
 			system.MTMS = assertString(value)
@@ -175,13 +180,17 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			system.State = assertString(value)
 		}
 		if value, exists = mapData["PhysicalSystemAttentionLEDState"]; exists {
-			system.LED = assertString(value)
+			str = assertString(value)
+			if str == "null" {
+				str = "false"
+			}
+			system.LED = str
 		}
 		if value, exists = mapData["ReferenceCode"]; exists {
 			system.RefCode = assertString(value)
 		}
 		system.Timestamp = time.Now().Unix()
-		system.Elapsed = 0
+		system.Elapsed = int64(time.Since(serverStart))
 
 		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.SysName)
 
@@ -189,6 +198,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	respJson.Elapsed = int64(time.Since(globalStart))
 	jsonData, _ := json.MarshalIndent(respJson, "", "  ")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
