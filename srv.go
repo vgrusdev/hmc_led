@@ -159,11 +159,27 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("%s. unmarshal error: %s", myname, err)
 			continue
 		}
-		system.MTMS = mapData["MTMS"].(string)
-		system.SysName = mapData["SystemName"].(string)
-		system.State = mapData["State"].(string)
-		system.LED = mapData["PhysicalSystemAttentionLEDState"].(string)
-		system.RefCode = mapData["ReferenceCode"].(string)
+		var value interface{}
+		exists := true
+
+		if value, exists = mapData["MTMS"]; exists {
+			system.MTMS = assertString(value)
+		}
+		if value, exists = mapData["MTMS"]; exists {
+			system.MTMS = assertString(value)
+		}
+		if value, exists = mapData["SystemName"]; exists {
+			system.SysName = assertString(value)
+		}
+		if value, exists = mapData["State"]; exists {
+			system.State = assertString(value)
+		}
+		if value, exists = mapData["PhysicalSystemAttentionLEDState"]; exists {
+			system.LED = assertString(value)
+		}
+		if value, exists = mapData["ReferenceCode"]; exists {
+			system.RefCode = assertString(value)
+		}
 		system.Timestamp = time.Now().Unix()
 		system.Elapsed = 0
 
@@ -179,4 +195,12 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonData)
 
+}
+
+func assertString(value interface{}) string {
+	if str, ok := value.(string); ok {
+		return str
+	} else {
+		return ""
+	}
 }
