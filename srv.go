@@ -143,6 +143,8 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	for num, elem := range mgmConsole.Links {
 
+		log.Debugf("%s NUM=%d", myname, num)
+
 		mgmsURL := elem.Href
 		a := strings.Split(mgmsURL, "/")
 		system.UUID = a[len(a)-1]
@@ -152,7 +154,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("%s. GetMgmsQuick err=%s", myname, err)
 			continue
 		}
-		var mapData map[string]interface{}
+		mapData := make(map[string]interface{})
 		err = json.Unmarshal([]byte(jsonData), &mapData)
 		if err != nil {
 			log.Errorf("%s. unmarshal error: %s", myname, err)
