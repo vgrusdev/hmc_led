@@ -236,8 +236,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		MTMS      string `json:"mtms"`
 		SysName   string `json:"systemname"`
 		State     string `json:"state"`
-		LED       string `json:"led"`
+		LED       bool   `json:"led"`
 		RefCode   string `json:"rfc"`
+		Location  string `json:"location"`
 		Timestamp int64  `json:"timestamp"`
 		Elapsed   int64  `json:"elapsed"`
 	}
@@ -282,9 +283,21 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	respJson.Elapsed = 0
 	respJson.Systems = []QuickMgms{}
 
-	var system QuickMgms
+	//var system QuickMgms
 
 	for num, elem := range mgmConsole.Links {
+
+		system := QuickMgms{
+			UUID:      "",
+			MTMS:      "",
+			SysName:   "",
+			State:     "",
+			LED:       false,
+			RefCode:   "",
+			Location:  "",
+			Timestamp: 0,
+			Elapsed:   0,
+		}
 
 		serverStart := time.Now()
 
@@ -318,12 +331,20 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		if value, exists = mapData["State"]; exists {
 			system.State = assertString(value)
 		}
+		if value, exists = mapData["SystemLocation"]; exists {
+			system.Location = assertString(value)
+		}
 		if value, exists = mapData["PhysicalSystemAttentionLEDState"]; exists {
 			str = assertString(value)
 			if str == "null" {
 				str = "false"
 			}
-			system.LED = str
+			if str == "false" {
+				system.LED = false
+			} else {
+				system.LED = true
+			}
+			//system.LED = str
 		}
 		if value, exists = mapData["ReferenceCode"]; exists {
 			system.RefCode = assertString(value)
