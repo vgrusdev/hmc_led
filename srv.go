@@ -355,7 +355,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			system.RefCode = assertString(value)
 		}
 		system.Timestamp = time.Now().Unix()
-		system.Elapsed = int64(time.Since(serverStart))
+		system.Elapsed = int64(time.Since(serverStart)) / 1000
 
 		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.SysName)
 
@@ -363,7 +363,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	respJson.Elapsed = int64(time.Since(globalStart))
+	respJson.Elapsed = int64(time.Since(globalStart)) / 1000
 	jsonData, _ := json.MarshalIndent(respJson, "", "  ")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
