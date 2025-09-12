@@ -232,7 +232,9 @@ func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	type QuickMgms struct {
-		UUID      string `json:"uuid"`
+		//UUID      string `json:"uuid"`
+		HMC       string `json:"hmc"`
+		HMCmtms   string `json:"hmc_mtms"`
 		MTMS      string `json:"mtms"`
 		SysName   string `json:"systemname"`
 		State     string `json:"state"`
@@ -243,9 +245,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		Elapsed   int64  `json:"elapsed"`
 	}
 	type RespJson struct {
-		HMC       string      `json:"hmc"`
-		HMCmtms   string      `json:"hmc_mtms"`
-		HMCuuid   string      `json:"hmc_uuid"`
+		HMC     string `json:"hmc"`
+		HMCmtms string `json:"hmc_mtms"`
+		//HMCuuid   string      `json:"hmc_uuid"`
 		Timestamp int64       `json:"timestamp"`
 		Elapsed   int64       `json:"elapsed"`
 		Systems   []QuickMgms `json:"systems"`
@@ -278,7 +280,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	respJson.HMC = hmc.hmcName
 	respJson.HMCmtms = mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial
-	respJson.HMCuuid = mgmConsole.ID
+	//respJson.HMCuuid = mgmConsole.ID
 	respJson.Timestamp = time.Now().Unix()
 	respJson.Elapsed = 0
 	respJson.Systems = []QuickMgms{}
@@ -288,7 +290,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	for num, elem := range mgmConsole.Links {
 
 		system := QuickMgms{
-			UUID:      "",
+			//UUID:      "",
+			HMC:       respJson.HMC,
+			HMCmtms:   respJson.HMCmtms,
 			MTMS:      "",
 			SysName:   "",
 			State:     "",
@@ -302,9 +306,10 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		serverStart := time.Now()
 
 		a := strings.Split(elem.Href, "/")
-		system.UUID = a[len(a)-1]
+		//system.UUID = a[len(a)-1]
+		uuid := a[len(a)-1]
 
-		jsonData, err := hmc.GetMgmsQuick(ctx, system.UUID)
+		jsonData, err := hmc.GetMgmsQuick(ctx, uuid)
 		if err != nil {
 			log.Errorf("%s. GetMgmsQuick err=%s", myname, err)
 			continue
