@@ -233,24 +233,24 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	type QuickMgms struct {
 		//UUID      string `json:"uuid"`
-		HMC       string `json:"hmc"`
-		HMCmtms   string `json:"hmc_mtms"`
-		MTMS      string `json:"mtms"`
-		SysName   string `json:"systemname"`
-		State     string `json:"state"`
-		LED       bool   `json:"led"`
-		RefCode   string `json:"rfc"`
-		Location  string `json:"location"`
-		Timestamp int64  `json:"timestamp"`
-		Elapsed   int64  `json:"elapsed"`
+		//HMC       string `json:"hmc"`
+		//HMCmtms   string `json:"hmc_mtms"`
+		MTMS string `json:"mtms"`
+		//SysName   string `json:"systemname"`
+		State   string `json:"state"`
+		LED     bool   `json:"led"`
+		RefCode string `json:"rfc"`
+		//Location  string `json:"location"`
+		//Timestamp int64  `json:"timestamp"`
+		Elapsed int64 `json:"elapsed"`
 	}
 	type RespJson struct {
 		HMC     string `json:"hmc"`
 		HMCmtms string `json:"hmc_mtms"`
 		//HMCuuid   string      `json:"hmc_uuid"`
-		Timestamp int64       `json:"timestamp"`
-		Elapsed   int64       `json:"elapsed"`
-		Systems   []QuickMgms `json:"systems"`
+		//Timestamp int64       `json:"timestamp"`
+		Elapsed int64       `json:"elapsed"`
+		Systems []QuickMgms `json:"systems"`
 	}
 
 	globalStart := time.Now()
@@ -281,7 +281,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	respJson.HMC = hmc.hmcName
 	respJson.HMCmtms = mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial
 	//respJson.HMCuuid = mgmConsole.ID
-	respJson.Timestamp = time.Now().Unix()
+	//respJson.Timestamp = time.Now().Unix()
 	respJson.Elapsed = 0
 	respJson.Systems = []QuickMgms{}
 
@@ -291,16 +291,16 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 		system := QuickMgms{
 			//UUID:      "",
-			HMC:       respJson.HMC,
-			HMCmtms:   respJson.HMCmtms,
-			MTMS:      "",
-			SysName:   "",
-			State:     "",
-			LED:       false,
-			RefCode:   "",
-			Location:  "",
-			Timestamp: 0,
-			Elapsed:   0,
+			//HMC:       respJson.HMC,
+			//HMCmtms:   respJson.HMCmtms,
+			MTMS: "",
+			//SysName:   "",
+			State:   "",
+			LED:     false,
+			RefCode: "",
+			//Location:  "",
+			//Timestamp: 0,
+			Elapsed: 0,
 		}
 
 		serverStart := time.Now()
@@ -330,15 +330,15 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		if value, exists = mapData["MTMS"]; exists {
 			system.MTMS = assertString(value)
 		}
-		if value, exists = mapData["SystemName"]; exists {
-			system.SysName = assertString(value)
-		}
+		//if value, exists = mapData["SystemName"]; exists {
+		//	system.SysName = assertString(value)
+		//}
 		if value, exists = mapData["State"]; exists {
 			system.State = assertString(value)
 		}
-		if value, exists = mapData["SystemLocation"]; exists {
-			system.Location = assertString(value)
-		}
+		//if value, exists = mapData["SystemLocation"]; exists {
+		//	system.Location = assertString(value)
+		//}
 		if value, exists = mapData["PhysicalSystemAttentionLEDState"]; exists {
 			str = assertString(value)
 			if str == "null" {
@@ -354,7 +354,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		if value, exists = mapData["ReferenceCode"]; exists {
 			system.RefCode = assertString(value)
 		}
-		system.Timestamp = time.Now().Unix()
+		//system.Timestamp = time.Now().Unix()
 		system.Elapsed = int64(time.Since(serverStart)) / 1000000
 
 		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.SysName)
