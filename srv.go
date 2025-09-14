@@ -357,7 +357,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		//system.Timestamp = time.Now().Unix()
 		system.Elapsed = int64(time.Since(serverStart)) / 1000000
 
-		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.SysName)
+		log.Debugf("%s ---> %s %3d/%d: %s", myname, hmc.hmcName, num+1, totServers, system.MTMS)
 
 		respJson.Systems = append(respJson.Systems, system)
 
