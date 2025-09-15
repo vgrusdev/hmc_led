@@ -232,8 +232,8 @@ func (s *Srv) getManagementConsole(w http.ResponseWriter, r *http.Request) {
 func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	type QuickMgms struct {
-		//UUID      string `json:"uuid"`
-		HMC string `json:"hmc"`
+		UUID string `json:"uuid"`
+		HMC  string `json:"hmc"`
 		//HMCmtms   string `json:"hmc_mtms"`
 		MTMS     string `json:"mtms"`
 		SysName  string `json:"systemname"`
@@ -290,8 +290,8 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	for num, elem := range mgmConsole.Links {
 
 		system := QuickMgms{
-			//UUID:      "",
-			HMC: respJson.HMC,
+			UUID: "",
+			HMC:  respJson.HMC,
 			//HMCmtms:   respJson.HMCmtms,
 			MTMS:     "",
 			SysName:  "",
@@ -306,8 +306,8 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		serverStart := time.Now()
 
 		a := strings.Split(elem.Href, "/")
-		//system.UUID = a[len(a)-1]
 		uuid := a[len(a)-1]
+		system.UUID = uuid
 
 		jsonData, err := hmc.GetMgmsQuick(ctx, uuid)
 		if err != nil {
@@ -328,7 +328,13 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		//	system.MTMS = assertString(value)
 		//}
 		if value, exists = mapData["MTMS"]; exists {
-			system.MTMS = assertString(value)
+			mtms := assertString(value)
+			mtm, s, found := strings.Cut(mtms, "*")
+			if found {
+				system.MTMS = mtm + "-" + s
+			} else {
+				system.MTMS = mtms
+			}
 		}
 		if value, exists = mapData["SystemName"]; exists {
 			system.SysName = assertString(value)
