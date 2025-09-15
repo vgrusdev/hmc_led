@@ -233,14 +233,14 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 	type QuickMgms struct {
 		//UUID      string `json:"uuid"`
-		//HMC       string `json:"hmc"`
+		HMC string `json:"hmc"`
 		//HMCmtms   string `json:"hmc_mtms"`
-		MTMS string `json:"mtms"`
-		//SysName   string `json:"systemname"`
-		State   string `json:"state"`
-		LED     bool   `json:"led"`
-		RefCode string `json:"rfc"`
-		//Location  string `json:"location"`
+		MTMS     string `json:"mtms"`
+		SysName  string `json:"systemname"`
+		State    string `json:"state"`
+		LED      bool   `json:"led"`
+		RefCode  string `json:"rfc"`
+		Location string `json:"location"`
 		//Timestamp int64  `json:"timestamp"`
 		Elapsed int64 `json:"elapsed"`
 	}
@@ -291,14 +291,14 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 
 		system := QuickMgms{
 			//UUID:      "",
-			//HMC:       respJson.HMC,
+			HMC: respJson.HMC,
 			//HMCmtms:   respJson.HMCmtms,
-			MTMS: "",
-			//SysName:   "",
-			State:   "",
-			LED:     false,
-			RefCode: "",
-			//Location:  "",
+			MTMS:     "",
+			SysName:  "",
+			State:    "",
+			LED:      false,
+			RefCode:  "",
+			Location: "",
 			//Timestamp: 0,
 			Elapsed: 0,
 		}
@@ -324,21 +324,21 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		var exists bool
 		var str string
 
-		if value, exists = mapData["MTMS"]; exists {
-			system.MTMS = assertString(value)
-		}
-		if value, exists = mapData["MTMS"]; exists {
-			system.MTMS = assertString(value)
-		}
-		//if value, exists = mapData["SystemName"]; exists {
-		//	system.SysName = assertString(value)
+		//if value, exists = mapData["MTMS"]; exists {
+		//	system.MTMS = assertString(value)
 		//}
+		if value, exists = mapData["MTMS"]; exists {
+			system.MTMS = assertString(value)
+		}
+		if value, exists = mapData["SystemName"]; exists {
+			system.SysName = assertString(value)
+		}
 		if value, exists = mapData["State"]; exists {
 			system.State = assertString(value)
 		}
-		//if value, exists = mapData["SystemLocation"]; exists {
-		//	system.Location = assertString(value)
-		//}
+		if value, exists = mapData["SystemLocation"]; exists {
+			system.Location = assertString(value)
+		}
 		if value, exists = mapData["PhysicalSystemAttentionLEDState"]; exists {
 			str = assertString(value)
 			if str == "null" {
