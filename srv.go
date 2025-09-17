@@ -272,6 +272,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		Systems []QuickMgms `json:"systems"`
 	}
 
+	//var err error
+	//var mgmConsole *ManagementConsole
+
 	globalStart := time.Now()
 
 	ctx, cancel := context.WithTimeout(s.ctx, 60*time.Second)
@@ -286,8 +289,6 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, ip_tls)
 
-	var mgmConsole *ManagementConsole
-
 	if (s.mgmConsole == nil) || s.mgmcNextUpdate.Before(time.Now()) {
 		log.Debugf("Retrieving mgms_list from HMC")
 		mgmConsole, err := hmc.GemManagementConsoleData(ctx)
@@ -300,9 +301,10 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		s.mgmcNextUpdate = time.Now().Add(s.mgmcInterval)
 	} else {
 		log.Debugf("Skipping retrieving mgms_list from HMC")
-		mgmConsole = s.mgmConsole
+
 	}
 
+	mgmConsole := s.mgmConsole
 	totServers := len(mgmConsole.Links)
 
 	respJson := RespJson{}
