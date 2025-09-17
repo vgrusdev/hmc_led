@@ -39,6 +39,8 @@ type Srv struct {
 
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 
+	var err error
+
 	router := mux.NewRouter()
 	router.HandleFunc("/health", healthCheck).Methods("GET")
 	router.HandleFunc("/status", s.status).Methods("GET")
@@ -55,11 +57,11 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		IdleTimeout:  120 * time.Second,
 	}
 	s.mgmConsole = nil
-	interval := config.GetString("hmc_mgms_retrieve_interval")
-	if interval == "" {
-		interval = "10m"
+	intervalS := config.GetString("hmc_mgms_retrieve_interval")
+	if intervalS == "" {
+		intervalS = "10m"
 	}
-	intervalD, err := time.ParseDuration(interval)
+	intervalD, err := time.ParseDuration(intervalS)
 	if err != nil {
 		log.Warnf("Error parsing hmc_mgms_retrieve_interval. Used 10m as a default value. err=%s", err)
 		intervalD = 10 * time.Minute
@@ -107,7 +109,7 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 	ctx, cancel := context.WithTimeout(s.ctx, 15*time.Second)
 	defer cancel()
 
-	err := hmc.Logon(ctx)
+	err = hmc.Logon(ctx)
 	if err != nil {
 		log.Errorf("Serv init. No connection to HMC. %s", err)
 	}
