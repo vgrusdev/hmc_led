@@ -26,12 +26,15 @@ import (
 
 type Srv struct {
 	//router 	*mux.Router
-	srv     *http.Server
-	hmc     *HMC
-	ctx     context.Context
-	tls     bool
-	certKEY string
-	certCRT string
+	srv            *http.Server
+	hmc            *HMC
+	ctx            context.Context
+	tls            bool
+	certKEY        string
+	certCRT        string
+	mgmConsole     *ManagementConsole
+	mgmcNextUpdate time.Time
+	mgmcInterval   time.Duration
 }
 
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
@@ -51,6 +54,19 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
+	s.mgmConsole = nil
+	interval := config.GetString("hmc_mgms_retrieve_interval")
+	if interval == "" {
+		interval = "10m"
+	}
+	intervalD, err := time.ParseDuration(interval)
+	if err != nil {
+		log.Warnf("Error parsing hmc_mgms_retrieve_interval. Used 10m as a default value. err=%s", err)
+		intervalD = 10 * time.Minute
+	}
+	s.mgmcInterval = intervalD
+	s.mgmcNextUpdate = time.Now()
+
 	if strings.ToLower(config.GetString("server_use_TLS")) == "yes" {
 		s.tls = true
 		// Configure TLS
@@ -235,12 +251,13 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		UUID string `json:"uuid"`
 		HMC  string `json:"hmc"`
 		//HMCmtms   string `json:"hmc_mtms"`
-		MTMS     string `json:"mtms"`
-		SysName  string `json:"systemname"`
-		State    string `json:"state"`
-		LED      bool   `json:"led"`
-		RefCode  string `json:"rfc"`
-		Location string `json:"location"`
+		MTMS          string `json:"mtms"`
+		SysName       string `json:"systemname"`
+		State         string `json:"state"`
+		LED           bool   `json:"led"`
+		RefCode       string `json:"rfc"`
+		MergedRefCode string `json:"mrfc"`
+		Location      string `json:"location"`
 		//Timestamp int64  `json:"timestamp"`
 		Elapsed int64 `json:"elapsed"`
 	}
@@ -267,11 +284,19 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, ip_tls)
 
-	mgmConsole, err := hmc.GemManagementConsoleData(ctx)
-	if err != nil {
-		log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
-		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsoleData error"})
-		return
+	var mgmConsole *ManagementConsole
+
+	if (s.mgmConsole == nil) || s.mgmcNextUpdate.Before(time.Now()) {
+		mgmConsole, err := hmc.GemManagementConsoleData(ctx)
+		if err != nil {
+			log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
+			respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsoleData error"})
+			return
+		}
+		s.mgmConsole = mgmConsole
+		s.mgmcNextUpdate = time.Now().Add(s.mgmcInterval)
+	} else {
+		mgmConsole = s.mgmConsole
 	}
 
 	totServers := len(mgmConsole.Links)
@@ -293,12 +318,13 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			UUID: "",
 			HMC:  respJson.HMC,
 			//HMCmtms:   respJson.HMCmtms,
-			MTMS:     "",
-			SysName:  "",
-			State:    "",
-			LED:      false,
-			RefCode:  "",
-			Location: "",
+			MTMS:          "",
+			SysName:       "",
+			State:         "",
+			LED:           false,
+			RefCode:       "",
+			MergedRefCode: "",
+			Location:      "",
 			//Timestamp: 0,
 			Elapsed: 0,
 		}
@@ -359,6 +385,9 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		}
 		if value, exists = mapData["ReferenceCode"]; exists {
 			system.RefCode = assertString(value)
+		}
+		if value, exists = mapData["MergedReferenceCode"]; exists {
+			system.MergedRefCode = assertString(value)
 		}
 		//system.Timestamp = time.Now().Unix()
 		system.Elapsed = int64(time.Since(serverStart)) / 1000000
