@@ -289,6 +289,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	var mgmConsole *ManagementConsole
 
 	if (s.mgmConsole == nil) || s.mgmcNextUpdate.Before(time.Now()) {
+		log.Debugf("Retrieving mgms_list from HMC")
 		mgmConsole, err := hmc.GemManagementConsoleData(ctx)
 		if err != nil {
 			log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
@@ -298,6 +299,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		s.mgmConsole = mgmConsole
 		s.mgmcNextUpdate = time.Now().Add(s.mgmcInterval)
 	} else {
+		log.Debugf("Skipping retrieving mgms_list from HMC")
 		mgmConsole = s.mgmConsole
 	}
 
