@@ -26,15 +26,15 @@ import (
 
 type Srv struct {
 	//router 	*mux.Router
-	srv            *http.Server
-	hmc            *HMC
-	ctx            context.Context
-	tls            bool
-	certKEY        string
-	certCRT        string
-	mgmConsole     *ManagementConsole
-	mgmcNextUpdate time.Time
-	mgmcInterval   time.Duration
+	srv     *http.Server
+	hmc     *HMC
+	ctx     context.Context
+	tls     bool
+	certKEY string
+	certCRT string
+	//mgmConsole     *ManagementConsole
+	//mgmcNextUpdate time.Time
+	//mgmcInterval   time.Duration
 }
 
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
@@ -56,18 +56,6 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-	s.mgmConsole = nil
-	intervalS := config.GetString("hmc_mgms_retrieve_interval")
-	if intervalS == "" {
-		intervalS = "10m"
-	}
-	intervalD, err := time.ParseDuration(intervalS)
-	if err != nil {
-		log.Warnf("Error parsing hmc_mgms_retrieve_interval. Used 10m as a default value. err=%s", err)
-		intervalD = 10 * time.Minute
-	}
-	s.mgmcInterval = intervalD
-	s.mgmcNextUpdate = time.Now()
 
 	if strings.ToLower(config.GetString("server_use_TLS")) == "yes" {
 		s.tls = true
@@ -273,7 +261,6 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//var err error
-	//var mgmConsole *ManagementConsole
 
 	globalStart := time.Now()
 
@@ -289,41 +276,34 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Infof("%s, hmc: %s, connection from: %s", myname, hmc.hmcName, ip_tls)
 
-	if (s.mgmConsole == nil) || s.mgmcNextUpdate.Before(time.Now()) {
-		log.Debugf("Retrieving mgms_list from HMC")
-		mgmConsole, err := hmc.GemManagementConsoleData(ctx)
-		if err != nil {
-			log.Errorf("%s, calling GemManagementConsoleData err=%s", myname, err)
-			respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsoleData error"})
-			return
-		}
-		s.mgmConsole = mgmConsole
-		s.mgmcNextUpdate = time.Now().Add(s.mgmcInterval)
-	} else {
-		log.Debugf("Skipping retrieving mgms_list from HMC")
-
+	mgmConsole, err := hmc.GetManagementConsoleData(ctx)
+	if err != nil {
+		log.Errorf("%s, calling GetManagementConsoleData err=%s", myname, err)
+		respondWithJSON(w, http.StatusInternalServerError, map[string]string{"result": "getManagementConsoleData error"})
+		return
 	}
-
-	mgmConsole := s.mgmConsole
 	totServers := len(mgmConsole.Links)
 
-	respJson := RespJson{}
-
-	respJson.HMC = hmc.hmcName
-	respJson.HMCmtms = mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial
-	//respJson.HMCuuid = mgmConsole.ID
-	//respJson.Timestamp = time.Now().Unix()
-	respJson.Elapsed = 0
-	respJson.Systems = []QuickMgms{}
+	respJson := RespJson{
+		HMC:     hmc.hmcName,
+		HMCmtms: mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial,
+		//HMCuuid: mgmConsole.ID,
+		//Timestamp: time.Now().Unix(),
+		Elapsed: 0,
+		Systems: []QuickMgms{},
+	}
 
 	//var system QuickMgms
 
 	for num, elem := range mgmConsole.Links {
 
+		a := strings.Split(elem.Href, "/")
+		uuid := a[len(a)-1]
+
 		system := QuickMgms{
-			UUID: "",
+			UUID: uuid,
 			HMC:  respJson.HMC,
-			//HMCmtms:   respJson.HMCmtms,
+			//HMCmtms:    respJson.HMCmtms,
 			MTMS:          "",
 			SysName:       "",
 			State:         "",
@@ -331,15 +311,10 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 			RefCode:       "",
 			MergedRefCode: "",
 			Location:      "",
-			//Timestamp: 0,
+			//Timestamp:    0,
 			Elapsed: 0,
 		}
-
 		serverStart := time.Now()
-
-		a := strings.Split(elem.Href, "/")
-		uuid := a[len(a)-1]
-		system.UUID = uuid
 
 		jsonData, err := hmc.GetMgmsQuick(ctx, uuid)
 		if err != nil {

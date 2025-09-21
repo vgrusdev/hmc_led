@@ -34,6 +34,7 @@ type HMC struct {
 	passwd      string
 	logon       *HMC_logon
 	stats       *HMC_stats
+	mgmc        *HMC_mgmc
 }
 type HMC_stats struct {
 	logon_requests      int64
@@ -45,6 +46,11 @@ type HMC_logon struct {
 	connected bool
 	token     string
 	mu        sync.Mutex
+}
+type HMC_mgmc struct {
+	mgmConsole *ManagementConsole
+	NextUpdate time.Time
+	Interval   time.Duration
 }
 
 type ManagementConsole struct {
@@ -66,7 +72,6 @@ func NewHMC(config *viper.Viper) *HMC {
 		connected: false,
 		token:     "",
 	}
-
 	hmc_stats := &HMC_stats{
 		logon_requests:      0,
 		url_requests:        0,
@@ -74,11 +79,24 @@ func NewHMC(config *viper.Viper) *HMC {
 		quick_mgms_requests: 0,
 	}
 
-	var tls_skip_verify bool
+	intervalS := config.GetString("hmc_mgms_retrieve_interval")
+	if intervalS == "" {
+		intervalS = "10m"
+	}
+	intervalD, err := time.ParseDuration(intervalS)
+	if err != nil {
+		log.Warnf("Error parsing hmc_mgms_retrieve_interval. Used 10m as a default value. err=%s", err)
+		intervalD = 10 * time.Minute
+	}
+	hmc_mgmc := &HMC_mgmc{
+		mgmConsole: nil,
+		NextUpdate: time.Now(),
+		Interval:   intervalD,
+	}
+
+	tls_skip_verify := false
 	if config.GetString("tls_skip_verify") == "yes" {
 		tls_skip_verify = true
-	} else {
-		tls_skip_verify = false
 	}
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -100,6 +118,7 @@ func NewHMC(config *viper.Viper) *HMC {
 		passwd:      config.GetString("hmc_passwd"),
 		logon:       hmc_logon,
 		stats:       hmc_stats,
+		mgmc:        hmc_mgmc,
 		//connected:   false,
 	}
 
@@ -221,8 +240,6 @@ func (hmc *HMC) Logoff(ctx context.Context, lock bool) error {
 	// Execute request
 	resp, err := hmc.client.Do(req)
 
-	hmc.CloseIdleConnections()
-
 	if err != nil {
 		return fmt.Errorf("HMC Logoff do, %w", err)
 	}
@@ -254,6 +271,8 @@ func (hmc *HMC) reLogon(ctx context.Context, token string) (string, error) {
 		return newToken, nil
 	}
 	_ = hmc.Logoff(ctx, false)
+	hmc.CloseIdleConnections()
+
 	err := hmc.Logon(ctx, false)
 	return hmc.logon.token, err
 
@@ -271,7 +290,6 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (hmc *HMC) CloseIdleConnections() {
-	//hmc.Logoff()
 	log.Infoln("HMC closing idle connections.")
 	hmc.client.CloseIdleConnections()
 }
@@ -362,22 +380,33 @@ func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
 	// Use read from file for development/debugging purposes in case real HMC is not reachable
 	//return readFileSafely("./mgms.xml")
 }
-func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsole, error) {
+func (hmc *HMC) GetManagementConsoleData(ctx context.Context) (*ManagementConsole, error) {
 
-	var mgmCons ManagementConsole
-	myname := "GemManagementConsoleData"
+	mgmc := hmc.mgmc
 
-	xmlData, err := hmc.GetManagementConsole(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%s %s", myname, err)
-	}
-	err = xml.Unmarshal(xmlData, &mgmCons)
-	if err != nil {
-		return nil, fmt.Errorf("%s %s", myname, err)
+	//var mgmCons ManagementConsole
+	myname := "GetManagementConsoleData"
+
+	if (mgmc.mgmConsole == nil) || mgmc.NextUpdate.Before(time.Now()) {
+		log.Debugf("%s. Retrieving data from HMC", myname)
+		mgmc.mgmConsole = nil
+		xmlData, err := hmc.GetManagementConsole(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%s %s", myname, err)
+		}
+		mgmConsole := &ManagementConsole{}
+		err = xml.Unmarshal(xmlData, mgmConsole)
+		if err != nil {
+			return nil, fmt.Errorf("%s %s", myname, err)
+		}
+		mgmc.mgmConsole = mgmConsole
+		mgmc.NextUpdate = time.Now().Add(mgmc.Interval)
 	} else {
-		return &mgmCons, nil
+		log.Debugf("%s. Retrieving data from buffer", myname)
 	}
+	return mgmc.mgmConsole, nil
 }
+
 func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsUUID string) ([]byte, error) {
 
 	hmc.stats.quick_mgms_requests++
