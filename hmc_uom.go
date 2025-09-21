@@ -240,6 +240,21 @@ func (hmc *HMC) Logoff(ctx context.Context, lock bool) error {
 	return nil
 }
 
+func (hmc *HMC) reLogon(ctx context.Context, token string) (string, error) {
+
+	hmc.logon.mu.Lock()
+	defer hmc.logon.mu.Unlock()
+
+	newToken := hmc.logon.token
+	if newToken != token {
+		log.Debugln("reLogon. New Token differ from old one. Smbdy already re-logoned.")
+		return newToken, nil
+	}
+	_ = hmc.Logoff(ctx, false)
+	err := hmc.Logon(ctx, false)
+	return hmc.logon.token, err
+
+}
 func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 
 	defer wg.Done()
@@ -278,7 +293,10 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	}
 
 	// Set headers
-	req.Header.Set("X-API-Session", hmc.logon.token)
+	token := hmc.logon.token // this token var is Inportant thinngs.
+	// In case of authority error we will compare this token with hmc.logon.token,
+	// may be smbdy already re-logoned while we processed the request
+	req.Header.Set("X-API-Session", token)
 	//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
 	req.Header.Set("Host", hmc.hmcHostname+":12443")
 	req.Header.Set("Accept", "*/*")
@@ -306,14 +324,10 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 		// Not authorised - not logged on
 		// try to logoff/logon once again
 		log.Infof("%s not connected to HMC by response. Trying to Logoff/Logon.", myname)
-
-		hmc.logon.mu.Lock()
-		defer hmc.logon.mu.Unlock()
-
-		_ = hmc.Logoff(ctx, false)
-		if err := hmc.Logon(ctx, false); err == nil {
+		token, err := hmc.reLogon(ctx, token)
+		if err == nil {
 			// New token from new Logon and repeat the request
-			req.Header.Set("X-API-Session", hmc.logon.token)
+			req.Header.Set("X-API-Session", token)
 			resp, err := hmc.client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
