@@ -25,20 +25,28 @@ import (
 )
 
 type HMC struct {
-	client              *http.Client
-	hmcName             string
-	hmcHostname         string
-	hmcUuid             string
-	baseURL             string
-	user                string
-	passwd              string
-	token               string
-	connected           bool
+	client      *http.Client
+	hmcName     string
+	hmcHostname string
+	hmcUuid     string
+	baseURL     string
+	user        string
+	passwd      string
+	logon       *HMC_logon
+	stats       *HMC_stats
+}
+type HMC_stats struct {
 	logon_requests      int64
 	url_requests        int64
 	mgmconsole_requests int64
 	quick_mgms_requests int64
 }
+type HMC_logon struct {
+	connected bool
+	token     string
+	mu        sync.Mutex
+}
+
 type ManagementConsole struct {
 	//XMLName   xml.Name `xml:"http://www.w3.org/2005/Atom feed"`
 	ID        string     `xml:"entry>id"`
@@ -54,8 +62,19 @@ type SysLinks struct {
 
 func NewHMC(config *viper.Viper) *HMC {
 
-	var tls_skip_verify bool
+	hmc_logon := &HMC_logon{
+		connected: false,
+		token:     "",
+	}
 
+	hmc_stats := &HMC_stats{
+		logon_requests:      0,
+		url_requests:        0,
+		mgmconsole_requests: 0,
+		quick_mgms_requests: 0,
+	}
+
+	var tls_skip_verify bool
 	if config.GetString("tls_skip_verify") == "yes" {
 		tls_skip_verify = true
 	} else {
@@ -71,7 +90,7 @@ func NewHMC(config *viper.Viper) *HMC {
 		DisableKeepAlives:   false, // Explicitly enable keep-alive
 	}
 
-	hmc := HMC{
+	hmc := &HMC{
 		client: &http.Client{
 			Transport: transport,
 		},
@@ -79,15 +98,12 @@ func NewHMC(config *viper.Viper) *HMC {
 		hmcHostname: config.GetString("hmc_hostname"),
 		user:        config.GetString("hmc_user"),
 		passwd:      config.GetString("hmc_passwd"),
-		connected:   false,
+		logon:       hmc_logon,
+		stats:       hmc_stats,
+		//connected:   false,
 	}
 
-	hmc.logon_requests = 0
-	hmc.url_requests = 0
-	hmc.mgmconsole_requests = 0
-	hmc.quick_mgms_requests = 0
-
-	return &hmc
+	return hmc
 }
 
 // for debugging, when real HMC is not reachable
@@ -106,19 +122,23 @@ func readFileSafely(filename string) ([]byte, error) {
 	return data, nil
 }
 
-func (hmc *HMC) Logon(ctx context.Context) error {
+func (hmc *HMC) doLogon(ctx context.Context, lock bool) error {
 
-	hmc.logon_requests++
+	hmc.stats.logon_requests++
 
-	if hmc.connected {
-		log.Errorln("HMC Logon. Attempting to logon when already connected !")
-		return fmt.Errorf("Attempting to logon when already connected")
-		//return nil
+	if lock {
+		hmc.logon.mu.Lock()
+		defer hmc.logon.mu.Unlock()
+	}
+
+	if hmc.logon.connected {
+		log.Warnln("HMC Logon. Attempting to logon when already connected !")
+		return nil
 	}
 
 	// reset connection status
-	hmc.token = ""
-	//hmc.connected = false
+	hmc.logon.token = ""
+	//hmc.logon.connected = false		// it is already false if we are here - see "if.." above :)
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
 	payload := "<LogonRequest schemaVersion=\"V1_0\" xmlns=\"http://www.ibm.com/xmlns/systems/power/firmware/web/mc/2012_10/\" " +
@@ -146,7 +166,6 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 	defer resp.Body.Close()
 
-	//log.Debugln("Logon:")
 	log.Infof("HMC %s Logon status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Logon Header:%v\n", resp.Header)
 
@@ -154,7 +173,6 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("HMC Logon Body %w", err)
 	}
-
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("Logon failed error code: %s url: %s\n", resp.Status, url)
 	}
@@ -170,17 +188,21 @@ func (hmc *HMC) Logon(ctx context.Context) error {
 	}
 	log.Debugf("Token: %s", response.Token)
 
-	hmc.token = response.Token
-	hmc.connected = true
+	hmc.logon.token = response.Token
+	hmc.logon.connected = true
 	return nil
 }
 
-func (hmc *HMC) Logoff(ctx context.Context) error {
+func (hmc *HMC) doLogoff(ctx context.Context, lock bool) error {
 
-	if !hmc.connected {
-		log.Errorln("HMC Logoff. Attempting to logoff when connected")
-		return fmt.Errorf("Attempting to logoff when not connected")
-		//return nil
+	if lock {
+		hmc.logon.mu.Lock()
+		defer hmc.logon.mu.Unlock()
+	}
+	if !hmc.logon.connected {
+		log.Warnln("HMC Logoff. Attempting to logoff when connected")
+		//return fmt.Errorf("Attempting to logoff when not connected")
+		return nil
 	}
 
 	url := "https://" + hmc.hmcHostname + ":12443/rest/api/web/Logon"
@@ -192,7 +214,7 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	}
 
 	// Set headers
-	req.Header.Set("X-API-Session", hmc.token)
+	req.Header.Set("X-API-Session", hmc.logon.token)
 	req.Header.Set("Host", hmc.hmcHostname+":12443")
 	req.Header.Set("Accept", "*/*")
 
@@ -206,8 +228,8 @@ func (hmc *HMC) Logoff(ctx context.Context) error {
 	log.Debugf("Logoff %s status:%s", hmc.hmcName, resp.Status)
 	//log.Debugf("Header:%v\n", resp.Header)
 
-	hmc.token = ""
-	hmc.connected = false
+	hmc.logon.token = ""
+	hmc.logon.connected = false
 
 	body, _ := io.ReadAll(resp.Body)
 	log.Debugf("Logoff Body: %s", body)
@@ -223,7 +245,7 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	log.Infoln("HMC shutting down..")
-	if err := hmc.Logoff(ctx); err != nil {
+	if err := hmc.doLogoff(ctx, true); err != nil {
 		log.Warnf("HMC Logoff: %s", err)
 	} else {
 		log.Infoln("HMC Logoff OK")
@@ -231,7 +253,7 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (hmc *HMC) CloseIdleConnections() {
-	//hmc.Logoff()
+	//hmc.doLogoff()
 	log.Infoln("HMC closing idle connections.")
 	hmc.client.CloseIdleConnections()
 }
@@ -241,11 +263,11 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	myname := "hmc.getInfoByUrl"
 
 	log.Debugf("%s url=%s", myname, url)
-	hmc.url_requests++
+	hmc.stats.url_requests++
 
-	if !hmc.connected {
+	if !hmc.logon.connected {
 		log.Infof("%s not connected. Trying to logon", myname)
-		if err := hmc.Logon(ctx); err != nil {
+		if err := hmc.doLogon(ctx, true); err != nil {
 			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
 	}
@@ -256,7 +278,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	}
 
 	// Set headers
-	req.Header.Set("X-API-Session", hmc.token)
+	req.Header.Set("X-API-Session", hmc.logon.token)
 	//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
 	req.Header.Set("Host", hmc.hmcHostname+":12443")
 	req.Header.Set("Accept", "*/*")
@@ -282,13 +304,16 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 		return []byte{}, nil
 	} else if resp.StatusCode == 401 || resp.StatusCode == 403 {
 		// Not authorised - not logged on
-		// try to logon once again
+		// try to logoff/logon once again
 		log.Infof("%s not connected to HMC by response. Trying to Logoff/Logon.", myname)
-		_ = hmc.Logoff(ctx)
-		//hmc.connected = false
-		if err := hmc.Logon(ctx); err == nil {
+
+		hmc.logon.mu.Lock()
+		defer hmc.logon.mu.Unlock()
+
+		_ = hmc.doLogoff(ctx, false)
+		if err := hmc.doLogon(ctx, false); err == nil {
 			// New token from new Logon and repeat the request
-			req.Header.Set("X-API-Session", hmc.token)
+			req.Header.Set("X-API-Session", hmc.logon.token)
 			resp, err := hmc.client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
@@ -311,7 +336,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 }
 func (hmc *HMC) GetManagementConsole(ctx context.Context) ([]byte, error) {
 
-	hmc.mgmconsole_requests++
+	hmc.stats.mgmconsole_requests++
 
 	consoleURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagementConsole"
 	consoleHeader := map[string]string{}
@@ -338,7 +363,7 @@ func (hmc *HMC) GemManagementConsoleData(ctx context.Context) (*ManagementConsol
 }
 func (hmc *HMC) GetMgmsQuick(ctx context.Context, mgmsUUID string) ([]byte, error) {
 
-	hmc.quick_mgms_requests++
+	hmc.stats.quick_mgms_requests++
 
 	mgmsHeader := map[string]string{"Content-Type": "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem"}
 	mgmsURL := "https://" + hmc.hmcHostname + ":12443/rest/api/uom/ManagedSystem/" + mgmsUUID + "/quick"
