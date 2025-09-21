@@ -109,7 +109,7 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 	ctx, cancel := context.WithTimeout(s.ctx, 15*time.Second)
 	defer cancel()
 
-	err = hmc.Logon(ctx)
+	err = hmc.Logon(ctx, true)
 	if err != nil {
 		log.Errorf("Serv init. No connection to HMC. %s", err)
 	}
