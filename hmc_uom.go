@@ -220,6 +220,9 @@ func (hmc *HMC) Logoff(ctx context.Context, lock bool) error {
 
 	// Execute request
 	resp, err := hmc.client.Do(req)
+
+	hmc.CloseIdleConnections()
+
 	if err != nil {
 		return fmt.Errorf("HMC Logoff do, %w", err)
 	}
