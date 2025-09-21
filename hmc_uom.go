@@ -122,7 +122,7 @@ func readFileSafely(filename string) ([]byte, error) {
 	return data, nil
 }
 
-func (hmc *HMC) doLogon(ctx context.Context, lock bool) error {
+func (hmc *HMC) Logon(ctx context.Context, lock bool) error {
 
 	hmc.stats.logon_requests++
 
@@ -193,7 +193,7 @@ func (hmc *HMC) doLogon(ctx context.Context, lock bool) error {
 	return nil
 }
 
-func (hmc *HMC) doLogoff(ctx context.Context, lock bool) error {
+func (hmc *HMC) Logoff(ctx context.Context, lock bool) error {
 
 	if lock {
 		hmc.logon.mu.Lock()
@@ -245,7 +245,7 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	log.Infoln("HMC shutting down..")
-	if err := hmc.doLogoff(ctx, true); err != nil {
+	if err := hmc.Logoff(ctx, true); err != nil {
 		log.Warnf("HMC Logoff: %s", err)
 	} else {
 		log.Infoln("HMC Logoff OK")
@@ -253,7 +253,7 @@ func (hmc *HMC) Shutdown(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (hmc *HMC) CloseIdleConnections() {
-	//hmc.doLogoff()
+	//hmc.Logoff()
 	log.Infoln("HMC closing idle connections.")
 	hmc.client.CloseIdleConnections()
 }
@@ -267,7 +267,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 
 	if !hmc.logon.connected {
 		log.Infof("%s not connected. Trying to logon", myname)
-		if err := hmc.doLogon(ctx, true); err != nil {
+		if err := hmc.Logon(ctx, true); err != nil {
 			return []byte{}, fmt.Errorf("%s Not connected. Logon error: %w", myname, err)
 		}
 	}
@@ -310,8 +310,8 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 		hmc.logon.mu.Lock()
 		defer hmc.logon.mu.Unlock()
 
-		_ = hmc.doLogoff(ctx, false)
-		if err := hmc.doLogon(ctx, false); err == nil {
+		_ = hmc.Logoff(ctx, false)
+		if err := hmc.Logon(ctx, false); err == nil {
 			// New token from new Logon and repeat the request
 			req.Header.Set("X-API-Session", hmc.logon.token)
 			resp, err := hmc.client.Do(req)

@@ -203,21 +203,21 @@ func (s *Srv) status(w http.ResponseWriter, r *http.Request) {
 		MgmConsoleRequests int64  `json:"mgmconsole_requests"`
 		QuickMgmsRequests  int64  `json:"quick_mgms_requests"`
 	}
-	hmc := s.hmc
+	//hmc := s.hmc
 
 	resp := Response{
-		Srv:                "OK",
-		HMC:                "",
-		LogonRequests:      hmc.logon_requests,
-		URLRequests:        hmc.url_requests,
-		MgmConsoleRequests: hmc.mgmconsole_requests,
-		QuickMgmsRequests:  hmc.quick_mgms_requests,
+		Srv: "OK",
+		HMC: "",
+		//	LogonRequests:      hmc.logon_requests,
+		//	URLRequests:        hmc.url_requests,
+		//	MgmConsoleRequests: hmc.mgmconsole_requests,
+		//	QuickMgmsRequests:  hmc.quick_mgms_requests,
 	}
-	if hmc.connected {
-		resp.HMC = "Connected"
-	} else {
-		resp.HMC = "Disconnected"
-	}
+	//if hmc.connected {
+	//	resp.HMC = "Connected"
+	//} else {
+	//	resp.HMC = "Disconnected"
+	//}
 	respondWithJSON(w, http.StatusOK, resp)
 }
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
