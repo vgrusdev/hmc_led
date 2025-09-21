@@ -256,8 +256,8 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		HMCmtms string `json:"hmc_mtms"`
 		//HMCuuid   string      `json:"hmc_uuid"`
 		//Timestamp int64       `json:"timestamp"`
-		Elapsed int64       `json:"elapsed"`
-		Systems []QuickMgms `json:"systems"`
+		Elapsed int64        `json:"elapsed"`
+		Systems []*QuickMgms `json:"systems"`
 	}
 
 	//var err error
@@ -284,13 +284,13 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 	}
 	totServers := len(mgmConsole.Links)
 
-	respJson := RespJson{
+	respJson := &RespJson{
 		HMC:     hmc.hmcName,
 		HMCmtms: mgmConsole.HMCType + "-" + mgmConsole.HMCMod + "*" + mgmConsole.HMCSerial,
 		//HMCuuid: mgmConsole.ID,
 		//Timestamp: time.Now().Unix(),
 		Elapsed: 0,
-		Systems: []QuickMgms{},
+		Systems: []*QuickMgms{},
 	}
 
 	//var system QuickMgms
@@ -300,7 +300,7 @@ func (s *Srv) quickManagedSystem(w http.ResponseWriter, r *http.Request) {
 		a := strings.Split(elem.Href, "/")
 		uuid := a[len(a)-1]
 
-		system := QuickMgms{
+		system := &QuickMgms{
 			UUID: uuid,
 			HMC:  respJson.HMC,
 			//HMCmtms:    respJson.HMCmtms,
