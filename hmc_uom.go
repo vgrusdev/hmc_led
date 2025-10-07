@@ -317,6 +317,7 @@ func (hmc *HMC) GetInfoByUrl(ctx context.Context, url string, headers map[string
 	token := hmc.logon.token // this token var is Inportant thinngs.
 	// In case of authority error we will compare this token with hmc.logon.token,
 	// may be smbdy already re-logoned while we processed the request
+
 	req.Header.Set("X-API-Session", token)
 	//req.Header.Set("Content-Type", "application/vnd.ibm.powervm.uom+xml; Type=ManagedSystem")
 	req.Header.Set("Host", hmc.hmcHostname+":12443")

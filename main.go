@@ -18,7 +18,7 @@ import (
 
 var (
 	// the released version
-	version string = "development"
+	version string = "development - 07.10.2025"
 	// the time the binary was built
 	buildDate string = "September 2025"
 	// global --help flag

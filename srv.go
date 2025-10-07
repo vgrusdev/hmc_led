@@ -32,9 +32,6 @@ type Srv struct {
 	tls     bool
 	certKEY string
 	certCRT string
-	//mgmConsole     *ManagementConsole
-	//mgmcNextUpdate time.Time
-	//mgmcInterval   time.Duration
 }
 
 func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
@@ -88,15 +85,19 @@ func (s *Srv) SrvInit(ctx context.Context, config *viper.Viper, hmc *HMC) {
 			router.Use(auth.Middleware)
 		}
 
+		s.certKEY = config.GetString("server_key")
+		s.certCRT = config.GetString("server_crt")
+		if (s.certKEY == "") || (s.certCRT == "") {
+			log.Errorln("CERT files are required if server_use_TLS=yes")
+		}
 	} else {
 		s.tls = false
 	}
-	s.certKEY = config.GetString("server_key")
-	s.certCRT = config.GetString("server_crt")
 
 	ctx, cancel := context.WithTimeout(s.ctx, 15*time.Second)
 	defer cancel()
 
+	// Try to Logon to HMC here, to report any issues at program start, not when first request will be received
 	err = hmc.Logon(ctx, true)
 	if err != nil {
 		log.Errorf("Serv init. No connection to HMC. %s", err)
@@ -151,13 +152,11 @@ func getClientIP(r *http.Request) string {
 		"X-Client-Ip",
 		"CF-Connecting-IP", // Cloudflare
 	}
-
 	for _, header := range headers {
 		if ip := r.Header.Get(header); ip != "" {
 			return ip
 		}
 	}
-
 	// Fallback to RemoteAddr
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
